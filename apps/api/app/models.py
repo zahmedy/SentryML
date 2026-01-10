@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from pydantic import field_validator
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -28,3 +29,13 @@ class PredictionEventIn(SQLModel):
     score: float
     prediction: Optional[str] = None
     event_time: datetime
+
+    @field_validator("event_time")
+    @classmethod
+    def clamp_future_event_time(cls, v: datetime) -> datetime:
+        now = datetime.now(timezone.utc)
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
+        if v > now:
+            return now
+        return v
