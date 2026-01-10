@@ -2,12 +2,15 @@ from datetime import datetime, timezone
 from pydantic import field_validator
 from typing import Optional
 from uuid import UUID, uuid4
-
 from sqlmodel import SQLModel, Field
+from sqlalchemy import Index
 
 
 class PredictionEvent(SQLModel, table=False):
     __tablename__ = "prediction_events"
+    __table_args__ = (
+        Index("ix_pred_model_time", "model_id", "event_time")
+    )
 
     event_id: UUID = Field(default_factory=uuid4, primary_key=True)
 
