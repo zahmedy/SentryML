@@ -6,6 +6,22 @@ from sqlmodel import SQLModel, Field
 from sqlalchemy import Index
 
 
+
+class Org(SQLModel, table=True):
+    __tablename__ = "orgs"
+    org_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    name: str
+
+
+class ApiKey(SQLModel, table=True):
+    __tablename__ = "api_keys"
+    key_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    org_id: UUID = Field(index=True)
+    key_hash: str = Field(index=True, unique=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    revoked_at: Optional[datetime] = None
+
+
 class PredictionEvent(SQLModel, table=False):
     __tablename__ = "prediction_events"
     __table_args__ = (
@@ -14,6 +30,7 @@ class PredictionEvent(SQLModel, table=False):
 
     event_id: UUID = Field(default_factory=uuid4, primary_key=True)
 
+    org_id: UUID = Field(index=True)
     model_id: str = Field(index=True)
     entity_id: str = Field(index=True)
 
@@ -25,6 +42,7 @@ class PredictionEvent(SQLModel, table=False):
         default_factory=datetime.utcnow,
         index=True
     )
+
 
 class PredictionEventIn(SQLModel):
     model_id: str
