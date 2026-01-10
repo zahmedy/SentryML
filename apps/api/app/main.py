@@ -3,9 +3,9 @@ from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session
 
 from app.db import engine, get_session
-from app.models import PredictionEvent, PredictionEventIn
+from app.models import PredictionEvent
+from app.schemas import PredictionEventIn
 from app.security import get_org_id
-
 
 
 @asynccontextmanager
@@ -20,14 +20,20 @@ app = FastAPI(
     lifespan=lifespane
 )
 
-@app.post("/v1/events/predication", response_model=PredictionEvent)
+@app.post("/v1/events/prediction", response_model=PredictionEvent)
 def ingest_predication(
     payload: PredictionEventIn,
     org_id = Depends(get_org_id),
     session: Session = Depends(get_session)
 ):
-    event = PredictionEvent.model_validate(payload)
-    event.org_id = org_id
+    event = PredictionEvent(
+        org_id=org_id,
+        model_id=payload.model_id,
+        entity_id=payload.entity_id,
+        score=payload.score,
+        prediction=payload.prediction,
+        event_time=payload.event_time
+    )
     session.add(event)
     session.commit()
     session.refresh(event)

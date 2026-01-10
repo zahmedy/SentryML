@@ -37,7 +37,7 @@ def main():
         revoked_at=None
     )
 
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         session.add(org)
         session.add(api_key)
         session.commit()

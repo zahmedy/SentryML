@@ -7,24 +7,15 @@ services:
       POSTGRES_PASSWORD: sentryml
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
 
   api:
-    build: ../apps/api
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://sentryml:sentryml@db:5432/sentryml
+      API_KEY_PEPPER: dev-pepper
     ports:
       - "8000:8000"
     depends_on:
       - db
-
-  worker:
-    build: ../apps/worker
-    environment:
-      DATABASE_URL: postgresql+psycopg://sentryml:sentryml@db:5432/sentryml
-    depends_on:
-      - db
-
-volumes:
-  pgdata:
