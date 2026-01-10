@@ -18,3 +18,5 @@ app = FastAPI(
     title="SentryML API",
     lifespan=lifespane
 )
+
+@app.post
