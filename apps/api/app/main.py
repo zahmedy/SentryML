@@ -4,6 +4,7 @@ from sqlmodel import SQLModel, Session
 
 from app.db import engine, get_session
 from app.models import PredictionEvent, PredictionEventIn
+from app.security import get_org_id
 
 
 
@@ -22,9 +23,11 @@ app = FastAPI(
 @app.post("/v1/events/predication", response_model=PredictionEvent)
 def ingest_predication(
     payload: PredictionEventIn,
+    org_id = Depends(get_org_id),
     session: Session = Depends(get_session)
 ):
     event = PredictionEvent.model_validate(payload)
+    event.org_id = org_id
     session.add(event)
     session.commit()
     session.refresh(event)
