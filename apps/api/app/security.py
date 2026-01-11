@@ -4,9 +4,8 @@ import os
 from fastapi import Header, HTTPException, Depends
 from sqlmodel import Session, select
 
-from app.db import get_session
-from app.models import ApiKey
-
+from sentryml_core.db import get_session
+from sentryml_core.models import ApiKey
 
 
 def hash_api_key(raw_key: str) -> str:

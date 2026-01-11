@@ -34,7 +34,7 @@ services:
     # For now, run manually when you want:
     # docker compose run --rm worker
     # Or keep it idle:
-    command: ["sh", "-c", "sleep infinity"]
+    #command: ["sh", "-c", "sleep infinity"]
 
 volumes:
   pgdata:
