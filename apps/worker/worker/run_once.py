@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 
 from sentryml_core.db import engine
 from sentryml_core.models import (MonitorConfig, PredictionEvent, 
-                                  DriftResult, Incident)
+                                  DriftResult, Incident, AlertRoute)
 from sentryml_core.drift import psi_quantile
 
 
@@ -31,10 +31,22 @@ def severity_for_psi(psi_score: float, warn: float, critical: float) -> str:
         return "warn"
     return "ok"
 
+def format_incident_text(action: str, model_id: str, severity: str, psi_score: float,
+                         baseline_n: int, current_n: int,
+                         baseline_start, baseline_end, current_start, current_end) -> str:
+    emoji = {"opened": "🚨", "escalated": "🔥", "resolved": "✅"}.get(action, "ℹ️")
+    return (
+        f"{emoji} SentryML incident {action}: {model_id} drift **{severity.upper()}** (PSI={psi_score:.4f})\n"
+        f"Baseline: {baseline_start} → {baseline_end} (n={baseline_n})\n"
+        f"Current:  {current_start} → {current_end} (n={current_n})"
+    )
+
 def main() -> int:
     now = utcnow()
 
     with Session(engine) as session:
+        routes = session.exec(select(AlertRoute).where(AlertRoute.is_enabled == True)).all()  # noqa: E712
+        route_map = {r.org_id: r for r in routes}
         monitors = session.exec(
             select(MonitorConfig).where(MonitorConfig.is_enabled == True)  # noqa: E712
         ).all()

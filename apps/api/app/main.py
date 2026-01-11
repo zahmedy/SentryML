@@ -7,9 +7,9 @@ from typing import List, Dict
 from sentryml_core.db import engine, get_session
 from sentryml_core.models import (PredictionEvent, ModelRegistry, 
                                   MonitorConfig, DriftResult,
-                                  Incident)
+                                  Incident, AlertRoute )
 from sentryml_core.schemas import (PredictionEventIn, ModelItem, 
-                                   MonitorUpdate)
+                                   MonitorUpdate, SlackRouteIn)
 from app.security import get_org_id
 
 
@@ -181,3 +181,35 @@ def list_incidents(
         q.order_by(Incident.opened_at.desc()).limit(limit)
     ).all()
     return rows
+
+
+@app.put("/v1/alerts/slack", response_model=AlertRoute)
+def upsert_slack_route(
+    payload: SlackRouteIn,
+    org_id = Depends(get_org_id),
+    session: Session = Depends(get_session),
+):
+    route = session.exec(
+        select(AlertRoute).where(AlertRoute.org_id == org_id)
+    ).first()
+
+    now = datetime.utcnow()
+    if route is None:
+        route = AlertRoute(
+            org_id=org_id,
+            kind="slack",
+            slack_webhook_url=payload.slack_webhook_url,
+            is_enabled=payload.is_enabled,
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(route)
+    else:
+        route.slack_webhook_url = payload.slack_webhook_url
+        route.is_enabled = payload.is_enabled
+        route.updated_at = now
+        session.add(route)
+
+    session.commit()
+    session.refresh(route)
+    return route

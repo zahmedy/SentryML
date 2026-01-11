@@ -113,3 +113,17 @@ class Incident(SQLModel, table=True):
 
     # helpful linkage
     drift_id: Optional[UUID] = None
+
+
+class AlertRoute(SQLModel, table=True):
+    __tablename__ = "alert_routes"
+
+    route_id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    org_id: UUID = Field(index=True, unique=True)   # 1 route per org (MVP)
+    kind: str = Field(default="slack")              # only slack for now
+    slack_webhook_url: str
+
+    is_enabled: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -42,3 +42,9 @@ class MonitorUpdate(SQLModel):
     min_samples: Optional[int] = None
     warn_threshold: Optional[float] = None
     critical_threshold: Optional[float] = None
+
+
+class SlackRouteIn(SQLModel):
+    slack_webhook_url: str
+    is_enabled: bool = True
+
