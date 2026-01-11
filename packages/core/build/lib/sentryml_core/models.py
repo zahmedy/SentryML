@@ -75,7 +75,22 @@ class MonitorConfig(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-class DriftResults(SQLModel, table=True):
+
+class DriftResult(SQLModel, table=True):
     __tablename__ = "drift_results"
 
-    
+    drift_id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    org_id: UUID = Field(index=True)
+    model_id: str = Field(index=True)
+
+    computed_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+    baseline_start: datetime
+    baseline_end: datetime
+    current_start: datetime
+    current_end: datetime
+
+    psi_score: float
+    baseline_n: int
+    current_n: int
