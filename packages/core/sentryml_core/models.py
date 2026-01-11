@@ -64,10 +64,10 @@ class MonitorConfig(SQLModel, table=True):
 
     is_enabled: bool = Field(default=False)
 
-    baseline_days: int = Field(default=1)
-    current_days: int = Field(default=1)
+    baseline_days: int = Field(default=14)
+    current_days: int = Field(default=7)
     num_bins: int = Field(default=10)
-    min_samples: int = Field(default=1)
+    min_samples: int = Field(default=500)
 
     warn_threshold: float = Field(default=0.1)
     critical_threshold: float = Field(default=0.2)
@@ -95,3 +95,21 @@ class DriftResult(SQLModel, table=True):
     baseline_n: int
     current_n: int
 
+
+class Incident(SQLModel, table=True):
+    __tablename__ = "incidents"
+
+    incident_id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    org_id: UUID = Field(index=True)
+    model_id: str = Field(index=True)
+
+    metric: str = Field(default="psi_score", index=True)
+    severity: str = Field(index=True)  # "warn" | "critical"
+    value: float
+
+    opened_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    closed_at: Optional[datetime] = Field(default=None, index=True)
+
+    # helpful linkage
+    drift_id: Optional[UUID] = None

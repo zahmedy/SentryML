@@ -4,7 +4,8 @@ from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
 
 from sentryml_core.db import engine
-from sentryml_core.models import MonitorConfig, PredictionEvent, DriftResult
+from sentryml_core.models import (MonitorConfig, PredictionEvent, 
+                                  DriftResult, Incident)
 from sentryml_core.drift import psi_quantile
 
 
@@ -23,6 +24,12 @@ def fetch_scores(session: Session, org_id, model_id: str, start: datetime, end: 
     ).all()
     return list(rows)
 
+def severity_for_psi(psi_score: float, warn: float, critical: float) -> str:
+    if psi_score >= critical:
+        return "critical"
+    if psi_score >= warn:
+        return "warn"
+    return "ok"
 
 def main() -> int:
     now = utcnow()
@@ -60,6 +67,45 @@ def main() -> int:
                 current_n=len(current_scores),
             )
             session.add(drift)
+
+            sev = severity_for_psi(psi_score, m.warn_threshold, m.critical_threshold)
+
+            open_incident = session.exec(
+                select(Incident).where(
+                    (Incident.org_id == m.org_id)
+                    & (Incident.model_id == m.model_id)
+                    & (Incident.metric == "psi_score")
+                    & (Incident.closed_at == None)
+                )
+            ).first()
+
+            now = utcnow()
+
+            if sev == "ok":
+                # close if one is open
+                if open_incident:
+                    open_incident.closed_at = now
+                    session.add(open_incident)
+            else:
+                # warn/critical
+                if open_incident is None:
+                    session.add(Incident(
+                        org_id=m.org_id,
+                        model_id=m.model_id,
+                        metric="psi_score",
+                        severity=sev,
+                        value=psi_score,
+                        opened_at=now,
+                        closed_at=None,
+                        drift_id=drift.drift_id,
+                    ))
+                else:
+                    # if it escalates (warn -> critical), update severity/value and keep it open
+                    if open_incident.severity != sev:
+                        open_incident.severity = sev
+                    open_incident.value = psi_score
+                    open_incident.drift_id = drift.drift_id
+                    session.add(open_incident)
 
         session.commit()
 

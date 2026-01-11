@@ -6,7 +6,8 @@ from typing import List, Dict
 
 from sentryml_core.db import engine, get_session
 from sentryml_core.models import (PredictionEvent, ModelRegistry, 
-                                  MonitorConfig, DriftResult)
+                                  MonitorConfig, DriftResult,
+                                  Incident)
 from sentryml_core.schemas import (PredictionEventIn, ModelItem, 
                                    MonitorUpdate)
 from app.security import get_org_id
@@ -155,5 +156,28 @@ def get_drift_history(
         .where((DriftResult.org_id == org_id) & (DriftResult.model_id == model_id))
         .order_by(DriftResult.computed_at.desc())
         .limit(limit)
+    ).all()
+    return rows
+
+
+@app.get("/v1/incidents", response_model=List[Incident])
+def list_incidents(
+    status: str = "open",
+    limit: int = 50,
+    org_id = Depends(get_org_id),
+    session: Session = Depends(get_session),
+):
+    q = select(Incident).where(Incident.org_id == org_id)
+
+    if status == "open":
+        q = q.where(Incident.closed_at == None)  # noqa: E711
+    elif status == "closed":
+        q = q.where(Incident.closed_at != None)  # noqa: E711
+    else:
+        # any status => no extra filter
+        pass
+
+    rows = session.exec(
+        q.order_by(Incident.opened_at.desc()).limit(limit)
     ).all()
     return rows

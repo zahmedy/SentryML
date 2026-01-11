@@ -95,3 +95,21 @@ class DriftResult(SQLModel, table=True):
     baseline_n: int
     current_n: int
 
+
+class Incident(SQLModel, table=True):
+    __tablename__ = "incidents"
+
+    incident_id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    org_id: UUID = Field(index=True)
+    model_id: str = Field(index=True)
+
+    metric: str = Field(default="psi_score", index=True)
+    severity: str = Field(index=True)  # "warn" | "critical"
+    value: float
+
+    opened_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    closed_at: Optional[datetime] = Field(default=None, index=True)
+
+    # helpful linkage
+    drift_id: Optional[UUID] = None
