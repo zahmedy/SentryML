@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select
 from datetime import datetime
@@ -6,7 +6,7 @@ from typing import List, Dict, Tuple
 
 from app.db import engine, get_session
 from app.models import PredictionEvent, ModelRegistry, MonitorConfig
-from app.schemas import PredictionEventIn, ModelItem
+from app.schemas import PredictionEventIn, ModelItem, MonitorUpdate
 from app.security import get_org_id
 
 
@@ -21,6 +21,7 @@ app = FastAPI(
     title="SentryML API",
     lifespan=lifespane
 )
+
 
 @app.post("/v1/events/prediction", response_model=PredictionEvent)
 def ingest_predication(
@@ -56,6 +57,7 @@ def ingest_predication(
     session.commit()
     session.refresh(event)
     return event
+
 
 @app.get("/v1/models", response_model=List[ModelItem])
 def list_models(
@@ -109,3 +111,30 @@ def list_models(
     # optional: sort newest first
     items.sort(key=lambda x: x.last_seen_at, reverse=True)
     return items
+
+@app.put("/v1/models/{model_id}/monitor", response_model=MonitorConfig)
+def update_monitor(
+    model_id: str,
+    payload: MonitorUpdate,
+    org_id = Depends(get_org_id),
+    session: Session = Depends(get_session)
+):
+    cfg = session.exec(
+        select(MonitorConfig).where(
+            (MonitorConfig.org_id == org_id) & (MonitorConfig.model_id == model_id)
+        )
+    ).first()
+
+    if cfg is None:
+        raise HTTPException(status_code=404, detail="Monitor config not found")
+    
+    data = payload.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        setattr(cfg, k, v)
+
+    cfg.updated_at = datetime.utcnow()
+
+    session.add(cfg)
+    session.commit()
+    session.refresh(cfg)
+    return cfg

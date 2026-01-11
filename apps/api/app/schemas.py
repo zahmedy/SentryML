@@ -32,3 +32,13 @@ class ModelItem(SQLModel):
     min_samples: int
     warn_threshold: float
     critical_threshold: float
+
+
+class MonitorUpdate(SQLModel):
+    is_enabled: Optional[bool] = None
+    baseline_days: Optional[int] = None
+    current_days: Optional[int] = None
+    num_bins: Optional[int] = None
+    min_samples: Optional[int] = None
+    warn_threshold: Optional[float] = None
+    critical_threshold: Optional[float] = None
