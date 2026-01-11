@@ -17,3 +17,18 @@ class PredictionEventIn(SQLModel):
         if v.tzinfo is None:
             v = v.replace(tzinfo=timezone.utc)
         return min(v, now)
+
+
+class ModelItem(SQLModel):
+    model_id: str
+    event_count: int
+    first_seen_at: datetime
+    last_seen_at: datetime
+
+    is_enabled: bool
+    baseline_days: int
+    current_days: int
+    num_bins: int
+    min_samples: int
+    warn_threshold: float
+    critical_threshold: float
