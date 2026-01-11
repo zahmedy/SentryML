@@ -94,3 +94,4 @@ class DriftResult(SQLModel, table=True):
     psi_score: float
     baseline_n: int
     current_n: int
+

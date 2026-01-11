@@ -2,11 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select
 from datetime import datetime
-from typing import List, Dict, Tuple
+from typing import List, Dict
 
 from sentryml_core.db import engine, get_session
-from sentryml_core.models import PredictionEvent, ModelRegistry, MonitorConfig
-from sentryml_core.schemas import PredictionEventIn, ModelItem, MonitorUpdate
+from sentryml_core.models import (PredictionEvent, ModelRegistry, 
+                                  MonitorConfig, DriftResult)
+from sentryml_core.schemas import (PredictionEventIn, ModelItem, 
+                                   MonitorUpdate)
 from app.security import get_org_id
 
 
@@ -112,6 +114,7 @@ def list_models(
     items.sort(key=lambda x: x.last_seen_at, reverse=True)
     return items
 
+
 @app.put("/v1/models/{model_id}/monitor", response_model=MonitorConfig)
 def update_monitor(
     model_id: str,
@@ -138,3 +141,19 @@ def update_monitor(
     session.commit()
     session.refresh(cfg)
     return cfg
+
+
+@app.get("/v1/models/{model_id}/drift", response_model=List[DriftResult])
+def get_drift_history(
+    model_id: str,
+    limit: int = 50,
+    org_id = Depends(get_org_id),
+    session: Session = Depends(get_session),
+):
+    rows = session.exec(
+        select(DriftResult)
+        .where((DriftResult.org_id == org_id) & (DriftResult.model_id == model_id))
+        .order_by(DriftResult.computed_at.desc())
+        .limit(limit)
+    ).all()
+    return rows
