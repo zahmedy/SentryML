@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session
+from datetime import datetime
 
 from app.db import engine, get_session
-from app.models import PredictionEvent
+from app.models import PredictionEvent, ModelRegistry, MonitorConfig
 from app.schemas import PredictionEventIn
 from app.security import get_org_id
 
@@ -35,6 +36,22 @@ def ingest_predication(
         event_time=payload.event_time
     )
     session.add(event)
+    model = session.get(ModelRegistry, (org_id, payload.model_id))
+    if model:
+        model.last_seen_at = datetime.now()
+        model.event_count += 1
+    else:
+        session.add(ModelRegistry(
+            org_id=org_id,
+            model_id=payload.model_id,
+            first_seen_at=datetime.utcnow(),
+            last_seen_at=datetime.utcnow(),
+            event_count=1
+        ))
+        session.add(MonitorConfig(
+            org_id=org_id,
+            model_id=payload.model_id
+        ))
     session.commit()
     session.refresh(event)
     return event
