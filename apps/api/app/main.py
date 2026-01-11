@@ -4,9 +4,9 @@ from sqlmodel import SQLModel, Session, select
 from datetime import datetime
 from typing import List, Dict, Tuple
 
-from app.db import engine, get_session
-from app.models import PredictionEvent, ModelRegistry, MonitorConfig
-from app.schemas import PredictionEventIn, ModelItem, MonitorUpdate
+from sentryml_core.db import engine, get_session
+from sentryml_core.models import PredictionEvent, ModelRegistry, MonitorConfig
+from sentryml_core.schemas import PredictionEventIn, ModelItem, MonitorUpdate
 from app.security import get_org_id
 
 

@@ -1,0 +1,4 @@
+[project]
+name = "sentryml-core"
+version = "0.1.0"
+dependencies = ["sqlmodel", "psycopg[binary]", "pydantic"]

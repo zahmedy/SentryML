@@ -7,6 +7,8 @@ services:
       POSTGRES_PASSWORD: sentryml
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   api:
     build:
@@ -19,3 +21,20 @@ services:
       - "8000:8000"
     depends_on:
       - db
+
+  worker:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://sentryml:sentryml@db:5432/sentryml
+      API_KEY_PEPPER: dev-pepper
+    depends_on:
+      - db
+    # For now, run manually when you want:
+    # docker compose run --rm worker
+    # Or keep it idle:
+    command: ["sh", "-c", "sleep infinity"]
+
+volumes:
+  pgdata:

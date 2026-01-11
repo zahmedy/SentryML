@@ -5,7 +5,7 @@ from datetime import datetime
 
 from sqlmodel import Session, create_engine
 
-from app.models import Org, ApiKey
+from sentryml_core.models import Org, ApiKey
 from app.security import hash_api_key
 
 
