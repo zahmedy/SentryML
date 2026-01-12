@@ -119,8 +119,8 @@ class AlertRoute(SQLModel, table=True):
     __tablename__ = "alert_routes"
 
     route_id: UUID = Field(default_factory=uuid4, primary_key=True)
-
     org_id: UUID = Field(index=True, unique=True)   # 1 route per org (MVP)
+    
     kind: str = Field(default="slack")              # only slack for now
     slack_webhook_url: str
 

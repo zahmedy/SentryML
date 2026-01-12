@@ -7,6 +7,7 @@ from sentryml_core.db import engine
 from sentryml_core.models import (MonitorConfig, PredictionEvent, 
                                   DriftResult, Incident, AlertRoute)
 from sentryml_core.drift import psi_quantile
+from worker.slack import send_slack
 
 
 def utcnow() -> datetime:
@@ -51,6 +52,7 @@ def main() -> int:
             select(MonitorConfig).where(MonitorConfig.is_enabled == True)  # noqa: E712
         ).all()
 
+        # Monitoring per model
         for m in monitors:
             current_end = now
             current_start = now - timedelta(days=m.current_days)
@@ -91,6 +93,10 @@ def main() -> int:
                 )
             ).first()
 
+            action = None
+            action_severity = sev  # what we’ll display in Slack
+            prev_severity = open_incident.severity if open_incident else None
+
             now = utcnow()
 
             if sev == "ok":
@@ -98,6 +104,8 @@ def main() -> int:
                 if open_incident:
                     open_incident.closed_at = now
                     session.add(open_incident)
+                    action = "resolved"
+                    action_severity = prev_severity or "ok"  # show what got resolved
             else:
                 # warn/critical
                 if open_incident is None:
@@ -111,13 +119,41 @@ def main() -> int:
                         closed_at=None,
                         drift_id=drift.drift_id,
                     ))
+                    action = "opened"
+                    action_severity = sev
                 else:
                     # if it escalates (warn -> critical), update severity/value and keep it open
-                    if open_incident.severity != sev:
+                    escalated = (open_incident.severity != sev)
+                    if escalated:
                         open_incident.severity = sev
+                        action = "escalated"
+                        action_severity = sev
+
                     open_incident.value = psi_score
                     open_incident.drift_id = drift.drift_id
                     session.add(open_incident)
+
+            # Send slack
+            if action is not None:
+                route = route_map.get(m.org_id)
+                if route and route.kind == "slack":
+                    text = format_incident_text(
+                        action=action,
+                        model_id=m.model_id,
+                        severity=action_severity,
+                        psi_score=psi_score,
+                        baseline_n=len(baseline_scores),
+                        current_n=len(current_scores),
+                        baseline_start=baseline_start,
+                        baseline_end=baseline_end,
+                        current_start=current_start,
+                        current_end=current_end,
+                    )
+                    try:
+                        send_slack(route.slack_webhook_url, text)
+                    except Exception as e:
+                        # Don’t crash the worker if Slack fails
+                        print(f"Slack send failed for org={m.org_id}: {e}")
 
         session.commit()
 

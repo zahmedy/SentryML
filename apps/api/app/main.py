@@ -208,8 +208,8 @@ def upsert_slack_route(
         route.slack_webhook_url = payload.slack_webhook_url
         route.is_enabled = payload.is_enabled
         route.updated_at = now
-        session.add(route)
-
+    
+    session.add(route)
     session.commit()
     session.refresh(route)
     return route
