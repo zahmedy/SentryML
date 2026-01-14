@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "sentryml"
+version = "0.1.0"
+description = "ML monitoring SaaS"
+authors = ["Zayed Ahmed"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+fastapi = "^0.111"
+uvicorn = "^0.22"
+sqlmodel = ">=0.0.31"
+pydantic = ">=2.12.5"
+psycopg2-binary = "^2.9"
+requests = "^2.31" # optional, if worker calls external APIs
+python-dotenv = "^1.0" # optional, if using .env files
+

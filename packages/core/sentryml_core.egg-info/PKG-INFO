@@ -1,6 +1,0 @@
-Metadata-Version: 2.4
-Name: sentryml-core
-Version: 0.1.0
-Requires-Dist: sqlmodel
-Requires-Dist: psycopg[binary]
-Requires-Dist: pydantic

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Models</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Last seen</th>
+      <th>Event count</th>
+      <th>Monitoring</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in models %}
+    <tr>
+      <td>{{ m.model_id }}</td>
+      <td>{{ m.last_seen_at }}</td>
+      <td>{{ m.event_count }}</td>
+      <td>{{ "ON" if m.is_monitored else "OFF" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

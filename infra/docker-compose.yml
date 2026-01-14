@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:16
@@ -5,36 +7,51 @@ services:
       POSTGRES_DB: sentryml
       POSTGRES_USER: sentryml
       POSTGRES_PASSWORD: sentryml
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
 
   api:
     build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      uvicorn apps.api.app.main:app
+      --host 0.0.0.0
+      --port 8000
     environment:
-      DATABASE_URL: postgresql+psycopg://sentryml:sentryml@db:5432/sentryml
-      API_KEY_PEPPER: dev-pepper
-    ports:
-      - "8000:8000"
+      DATABASE_URL: postgresql+psycopg2://sentryml:sentryml@db:5432/sentryml
+      API_KEY_PEPPER: changeme_in_production_12345
     depends_on:
       - db
+    ports:
+      - "8000:8000"
 
   worker:
     build:
-      context: ..
-      dockerfile: apps/worker/Dockerfile
+      context: .
+      dockerfile: Dockerfile
+    command: python -m apps.worker.worker.run_once
     environment:
-      DATABASE_URL: postgresql+psycopg://sentryml:sentryml@db:5432/sentryml
-      API_KEY_PEPPER: dev-pepper
+      DATABASE_URL: postgresql+psycopg2://sentryml:sentryml@db:5432/sentryml
     depends_on:
       - db
-    # For now, run manually when you want:
-    # docker compose run --rm worker
-    # Or keep it idle:
-    #command: ["sh", "-c", "sleep infinity"]
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      uvicorn apps.ui.main:app
+      --host 0.0.0.0
+      --port 9000
+    environment:
+      API_BASE_URL: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "9000:9000"
 
 volumes:
-  pgdata:
+  postgres_data:
