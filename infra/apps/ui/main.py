@@ -10,7 +10,6 @@ app = FastAPI(title="SentryML UI")
 templates = Jinja2Templates(directory="apps/ui/templates")
 
 API_BASE = os.getenv("API_BASE_URL", "http://api:8000")
-API_KEY = os.getenv("UI_API_KEY")
 
 def api_cookie_jar(request: Request) -> dict:
     sid = request.cookies.get("sentryml_session")
@@ -81,18 +80,18 @@ def api_keys_revoke(request: Request, key_id: str):
 
     return RedirectResponse("/settings/api-keys", status_code=303)
 
-def get_api_headers(request: Request) -> dict:
-    api_key = request.cookies.get("sentryml_session")
-    if not api_key:
-        raise RedirectResponse("/", status_code=302)
-    return {"X-API-Key": api_key}
-
 @app.get("/", response_class=HTMLResponse)
 def login(request: Request):
     return templates.TemplateResponse(
         "login.html",
         {"request": request},
     )
+
+@app.post("/logout")
+def logout():
+    resp = RedirectResponse("/", status_code=303)
+    resp.delete_cookie("sentryml_session")
+    return resp
 
 @app.post("/auth")
 def auth(email: str = Form(...), password: str = Form(...)):
@@ -118,7 +117,6 @@ def auth(email: str = Form(...), password: str = Form(...)):
     )
     return out
 
-
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     # Redirect to login if not authenticated
@@ -138,88 +136,22 @@ def dashboard(request: Request):
         },
     )
 
-@app.get("/models", response_class=HTMLResponse)
-def models(request: Request):
-    headers = get_api_headers(request)
+@app.get("/models/{model_id}", response_class=HTMLResponse)
+def model_detail(request: Request, model_id: str):
+    if not request.cookies.get("sentryml_session"):
+        return RedirectResponse("/", status_code=302)
 
     resp = requests.get(
-        f"{API_BASE}/v1/models",
-        headers=headers,
+        f"{API_BASE}/v1/ui/models/{model_id}",
+        cookies=api_cookie_jar(request),
         timeout=5,
     )
     resp.raise_for_status()
-
-    models = resp.json()
-
-    return templates.TemplateResponse(
-        "models.html",
-        {
-            "request": request,
-            "models": models,
-        },
-    )
-
-@app.get("/incidents", response_class=HTMLResponse)
-def incidents(request: Request):
-    headers = get_api_headers(request)
-
-    resp = requests.get(
-        f"{API_BASE}/v1/incidents",
-        headers=headers,
-        timeout=5,
-    )
-    resp.raise_for_status()
+    data = resp.json()
 
     return templates.TemplateResponse(
-        "incidents.html",
-        {
-            "request": request,
-            "incidents": resp.json(),
-        },
+        "model_detail.html",
+        {"request": request, "model_id": model_id, "drift": data["drift"], "incidents": data["incidents"]},
     )
 
-@app.get("/drift", response_class=HTMLResponse)
-def drift(
-    request: Request,
-    model_id: str | None = None,
-):
-    headers = get_api_headers(request)
 
-    # 1. Fetch models
-    models_resp = requests.get(
-        f"{API_BASE}/v1/models",
-        headers=headers,
-        timeout=5,
-    )
-    models_resp.raise_for_status()
-    models = models_resp.json()
-
-    if not models:
-        return templates.TemplateResponse(
-            "drift.html",
-            {"request": request, "models": [], "drift": [], "model_id": None},
-        )
-
-    # 2. Choose model
-    if model_id is None:
-        model_id = models[0]["model_id"]
-
-    # 3. Fetch drift for selected model
-    drift_resp = requests.get(
-        f"{API_BASE}/v1/models/{model_id}/drift",
-        headers=headers,
-        timeout=5,
-    )
-    drift_resp.raise_for_status()
-
-    drift = drift_resp.json()
-
-    return templates.TemplateResponse(
-        "drift.html",
-        {
-            "request": request,
-            "models": models,
-            "drift": drift,
-            "model_id": model_id,
-        },
-    )
