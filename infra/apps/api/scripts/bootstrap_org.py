@@ -3,10 +3,10 @@ import secrets
 from uuid import uuid4
 from datetime import datetime
 
-from sqlmodel import Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from apps.sentryml_core.models import Org, ApiKey, User
-from apps.api.app.security import hash_api_key
+from apps.api.app.security import hash_api_key, hash_password
 
 
 
@@ -26,12 +26,13 @@ def main():
     password = os.getenv("PASSWORD", "admin123")
 
     engine = create_engine(database_url, echo=False)
+    SQLModel.metadata.create_all(engine)
 
     prefix = "sk_live_"
     raw_key = generate_api_key(prefix)
     key_prefix = raw_key[:12]
     key_hash = hash_api_key(raw_key)
-    pass_hash = hash_api_key(password)
+    pass_hash = hash_password(password)
 
     org = Org(org_id=uuid4(), name=org_name)
     user = User(
@@ -57,6 +58,7 @@ def main():
 
     with Session(engine, expire_on_commit=False) as session:
         session.add(org)
+        session.add(user)
         session.add(api_key)
         session.commit()
 

@@ -21,8 +21,11 @@ services:
       --host 0.0.0.0
       --port 8000
     environment:
-      DATABASE_URL: postgresql+psycopg2://sentryml:sentryml@db:5432/sentryml
-      API_KEY_SECRET: ${API_KEY_SECRET}
+      - DATABASE_URL=postgresql://sentryml:sentryml@db:5432/sentryml
+      - API_KEY_SECRET=dev-secret
+      - ADMIN_EMAIL=admin@sentryml.dev
+      - ADMIN_PASSWORD=changeme
+      - ORG_NAME=Demo Org
     depends_on:
       - db
     ports:
@@ -35,7 +38,7 @@ services:
     command: python -m apps.worker.worker.run_once
     environment:
       DATABASE_URL: postgresql+psycopg2://sentryml:sentryml@db:5432/sentryml
-      API_KEY_SECRET: ${API_KEY_SECRET}
+      API_KEY_SECRET: dev-secret
     depends_on:
       - db
 

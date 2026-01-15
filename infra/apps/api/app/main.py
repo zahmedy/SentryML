@@ -7,10 +7,13 @@ from typing import List, Dict
 from apps.sentryml_core.db import engine, get_session
 from apps.sentryml_core.models import (PredictionEvent, ModelRegistry,
                                   MonitorConfig, DriftResult,
-                                  Incident, AlertRoute )
+                                  Incident, AlertRoute, User, SessionToken)
 from apps.sentryml_core.schemas import (PredictionEventIn, ModelItem,
                                    MonitorUpdate, SlackRouteIn)
-from apps.api.app.security import get_org_id
+from apps.api.app.security import (get_org_id, verify_password)
+from apps.api.app.routers.auth import router as auth_router
+from apps.api.app.routers.api_keys import router as api_keys_router
+
 
 
 @asynccontextmanager
@@ -25,6 +28,8 @@ app = FastAPI(
     lifespan=lifespane
 )
 
+app.include_router(auth_router)
+app.include_router(api_keys_router)
 
 @app.post("/v1/events/prediction", response_model=PredictionEvent)
 def ingest_predication(
@@ -217,3 +222,4 @@ def upsert_slack_route(
     session.commit()
     session.refresh(route)
     return route
+

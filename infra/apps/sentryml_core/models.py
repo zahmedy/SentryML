@@ -1,5 +1,6 @@
-from datetime import datetime
-from typing import Optional, Literal
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Optional
 from uuid import UUID, uuid4
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Index
@@ -118,7 +119,10 @@ class DriftResult(SQLModel, table=True):
     current_n: int
 
 
-IncidentState = Literal["none", "warn", "critical"]
+class IncidentState(str, Enum):
+    NONE = "none"
+    WARN = "warn"
+    CRITICAL = "critical"
 
 class Incident(SQLModel, table=True):
     __tablename__ = "incidents"
@@ -129,7 +133,7 @@ class Incident(SQLModel, table=True):
     model_id: str = Field(index=True)
 
     metric: str = Field(default="psi_score", index=True)
-    state: IncidentState = Field(default="none", index=True)
+    state: IncidentState = Field(default=IncidentState.NONE, index=True)
     severity: str = Field(index=True)  # keep for now, or replace later
     value: float
 
@@ -139,7 +143,13 @@ class Incident(SQLModel, table=True):
     drift_id: Optional[UUID] = None
 
 
-IncidentAction = Literal["noop", "open", "escalate", "downgrade", "update", "resolve"]
+class IncidentAction(str, Enum):
+    NOOP = "noop"
+    OPEN = "open"
+    ESCALATE = "escalate"
+    DOWNGRADE = "downgrade"
+    UPDATE = "update"
+    RESOLVE = "resolve"
 
 class IncidentTransition(SQLModel, table=True):
     __tablename__ = "incident_transitions"
@@ -175,3 +185,18 @@ class AlertRoute(SQLModel, table=True):
     is_enabled: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SessionToken(SQLModel, table=True):
+    __tablename__ = "sessions"
+
+    session_id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    user_id: UUID = Field(index=True)
+
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    expires_at: datetime = Field(
+        default_factory=lambda: datetime.utcnow() + timedelta(days=30),
+        index=True,
+    )
+    revoked_at: Optional[datetime] = Field(default=None, index=True)
