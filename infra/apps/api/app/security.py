@@ -40,10 +40,12 @@ def get_org_id(
         session: Session = Depends(get_session),
 ):
     key_hash = hash_api_key(x_api_key)
-    api_key = session.exec(select(ApiKey)
-                           .where(ApiKey.key_hash == key_hash).distinct()
-                           .where(ApiKey.revoked_at is None) 
-                            ).first()
+    api_key = session.exec(
+        select(ApiKey)
+        .where(ApiKey.key_hash == key_hash)
+        .where(ApiKey.revoked_at == None)  # noqa: E711
+        .distinct()
+    ).first()
     if not api_key:
         raise HTTPException(status_code=401, detail="Invalid API Key")
     api_key.last_used_at = datetime.utcnow()

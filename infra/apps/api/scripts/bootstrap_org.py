@@ -22,8 +22,8 @@ def main():
         raise RuntimeError("DATABASE_URL is not set")
     
     org_name = os.getenv("ORG_NAME", "Demo Org")
-    user_email = os.getenv("USER_EMAIL", "Admin")
-    password = os.getenv("PASSWORD", "admin123")
+    user_email = os.getenv("ADMIN_EMAIL")
+    password = os.getenv("ADMIN_PASSWORD", "admin123")
 
     engine = create_engine(database_url, echo=False)
     SQLModel.metadata.create_all(engine)
