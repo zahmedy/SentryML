@@ -12,8 +12,77 @@ templates = Jinja2Templates(directory="apps/ui/templates")
 API_BASE = os.getenv("API_BASE_URL", "http://api:8000")
 API_KEY = os.getenv("UI_API_KEY")
 
+def api_cookie_jar(request: Request) -> dict:
+    sid = request.cookies.get("sentryml_session")
+    return {"sentryml_session": sid} if sid else {}
+
+def require_session(request: Request):
+    if not request.cookies.get("sentryml_session"):
+        return RedirectResponse("/", status_code=302)
+    return None
+
+@app.get("/settings/api-keys", response_class=HTMLResponse)
+def api_keys_page(request: Request):
+    r = require_session(request)
+    if r:
+        return r
+
+    resp = requests.get(
+        f"{API_BASE}/v1/api-keys",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+
+    return templates.TemplateResponse(
+        "api_keys.html",
+        {"request": request, "keys": resp.json(), "new_key": None},
+    )
+
+@app.post("/settings/api-keys/create")
+def api_keys_create(request: Request, name: str = Form(default="")):
+    r = require_session(request)
+    if r:
+        return r
+
+    resp = requests.post(
+        f"{API_BASE}/v1/api-keys",
+        json={"name": name or None},
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+
+    # Re-fetch list so page renders current state
+    keys_resp = requests.get(
+        f"{API_BASE}/v1/api-keys",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    keys_resp.raise_for_status()
+
+    return templates.TemplateResponse(
+        "api_keys.html",
+        {"request": request, "keys": keys_resp.json(), "new_key": resp.json()},
+    )
+
+@app.post("/settings/api-keys/{key_id}/revoke")
+def api_keys_revoke(request: Request, key_id: str):
+    r = require_session(request)
+    if r:
+        return r
+
+    resp = requests.post(
+        f"{API_BASE}/v1/api-keys/{key_id}/revoke",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+
+    return RedirectResponse("/settings/api-keys", status_code=303)
+
 def get_api_headers(request: Request) -> dict:
-    api_key = request.cookies.get("api_key")
+    api_key = request.cookies.get("sentryml_session")
     if not api_key:
         raise RedirectResponse("/", status_code=302)
     return {"X-API-Key": api_key}
@@ -26,19 +95,34 @@ def login(request: Request):
     )
 
 @app.post("/auth")
-def auth(api_key: str = Form(...)):
-    response = RedirectResponse("/dashboard", status_code=303)
-    response.set_cookie(
-        key="api_key",
-        value=api_key,
-        httponly=True,
+def auth(email: str = Form(...), password: str = Form(...)):
+    resp = requests.post(
+        f"{API_BASE}/v1/auth/login",
+        json={"email": email, "password": password},
+        timeout=5,
     )
-    return response
+    if resp.status_code != 200:
+        return RedirectResponse("/", status_code=303)
+
+    # grab session cookie from API response
+    session_cookie = resp.cookies.get("sentryml_session")
+    if not session_cookie:
+        return RedirectResponse("/", status_code=303)
+
+    out = RedirectResponse("/dashboard", status_code=303)
+    out.set_cookie(
+        key="sentryml_session",
+        value=session_cookie,
+        httponly=True,
+        samesite="lax",
+    )
+    return out
+
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     # Redirect to login if not authenticated
-    if not request.cookies.get("api_key"):
+    if not request.cookies.get("sentryml_session"):
         return RedirectResponse("/", status_code=302)
 
     return templates.TemplateResponse(
