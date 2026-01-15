@@ -68,50 +68,54 @@ def list_models(
     session: Session = Depends(get_session),
 ):
     models = session.exec(
-        select(ModelRegistry).where(ModelRegistry.org_id == org_id)
+        select(ModelRegistry)
+        .where(ModelRegistry.org_id == org_id)
     ).all()
+
+    open_incidents = session.exec(
+        select(Incident)
+        .where(
+            (Incident.org_id == org_id) &
+            (Incident.closed_at == None)
+        )
+    ).all()
+
+    incident_map = {i.model_id: i for i in open_incidents}
 
     configs = session.exec(
-        select(MonitorConfig).where(MonitorConfig.org_id == org_id)
+        select(MonitorConfig)
+        .where(MonitorConfig.org_id == org_id)
     ).all()
 
-    cfg_map: Dict[str, MonitorConfig] = {c.model_id: c for c in configs}
+    cfg_map = {c.model_id: c for c in configs}
 
     items: List[ModelItem] = []
+
     for m in models:
         cfg = cfg_map.get(m.model_id)
-        # cfg should exist because you create it on first ingest,
-        # but keep a safe fallback anyway.
-        if cfg is None:
-            items.append(ModelItem(
+        incident = incident_map.get(m.model_id)
+
+        status = "ok"
+        if incident:
+            status = incident.severity  # warn | critical
+
+        items.append(
+            ModelItem(
                 model_id=m.model_id,
                 event_count=m.event_count,
                 first_seen_at=m.first_seen_at,
                 last_seen_at=m.last_seen_at,
-                is_enabled=False,
-                baseline_days=14,
-                current_days=7,
-                num_bins=10,
-                min_samples=500,
-                warn_threshold=0.1,
-                critical_threshold=0.2
-            ))
-        else:
-            items.append(ModelItem(
-                model_id=m.model_id,
-                event_count=m.event_count,
-                first_seen_at=m.first_seen_at,
-                last_seen_at=m.last_seen_at,
-                is_enabled=cfg.is_enabled,
-                baseline_days=cfg.baseline_days,
-                current_days=cfg.current_days,
-                num_bins=cfg.num_bins,
-                min_samples=cfg.min_samples,
-                warn_threshold=cfg.warn_threshold,
-                critical_threshold=cfg.critical_threshold,
-            ))
-    
-    # optional: sort newest first
+                is_enabled=cfg.is_enabled if cfg else False,
+                baseline_days=cfg.baseline_days if cfg else 14,
+                current_days=cfg.current_days if cfg else 7,
+                num_bins=cfg.num_bins if cfg else 10,
+                min_samples=cfg.min_samples if cfg else 500,
+                warn_threshold=cfg.warn_threshold if cfg else 0.1,
+                critical_threshold=cfg.critical_threshold if cfg else 0.2,
+                status=status,
+            )
+        )
+
     items.sort(key=lambda x: x.last_seen_at, reverse=True)
     return items
 

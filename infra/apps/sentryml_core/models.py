@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 from uuid import UUID, uuid4
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Index
@@ -12,13 +12,36 @@ class Org(SQLModel, table=True):
     name: str
 
 
+class User(SQLModel, table=True):
+    __tablename__ = "users"
+    
+    user_id: UUID = Field(index=True, primary_key=True)
+    
+    org_id: UUID = Field(index=True)
+    
+    email: str = Field(index=True, unique=True)
+    password_hash: str
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
 class ApiKey(SQLModel, table=True):
     __tablename__ = "api_keys"
+    
     key_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    
     org_id: UUID = Field(index=True)
+    user_id: UUID = Field(index=True)
+    
+    name: Optional[str] = None
+    
+    prefix: str = Field(index=True)
+    
     key_hash: str = Field(index=True, unique=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    revoked_at: Optional[datetime] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    revoked_at: Optional[datetime] = Field(default=None, index=True)
+    last_used_at: Optional[datetime] = Field(default=None, index=True)
 
 
 class PredictionEvent(SQLModel, table=True):
@@ -95,6 +118,8 @@ class DriftResult(SQLModel, table=True):
     current_n: int
 
 
+IncidentState = Literal["none", "warn", "critical"]
+
 class Incident(SQLModel, table=True):
     __tablename__ = "incidents"
 
@@ -104,14 +129,38 @@ class Incident(SQLModel, table=True):
     model_id: str = Field(index=True)
 
     metric: str = Field(default="psi_score", index=True)
-    severity: str = Field(index=True)  # "warn" | "critical"
+    state: IncidentState = Field(default="none", index=True)
+    severity: str = Field(index=True)  # keep for now, or replace later
     value: float
 
     opened_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     closed_at: Optional[datetime] = Field(default=None, index=True)
 
-    # helpful linkage
     drift_id: Optional[UUID] = None
+
+
+IncidentAction = Literal["noop", "open", "escalate", "downgrade", "update", "resolve"]
+
+class IncidentTransition(SQLModel, table=True):
+    __tablename__ = "incident_transitions"
+
+    transition_id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    org_id: UUID = Field(index=True)
+    model_id: str = Field(index=True)
+    incident_id: UUID = Field(index=True)
+
+    from_state: IncidentState = Field(index=True)
+    to_state: IncidentState = Field(index=True)
+    action: IncidentAction = Field(index=True)
+
+    # snapshot of the decision input
+    severity: str = Field(index=True)  # "ok" | "warn" | "critical"
+    value: float
+    metric: str = Field(default="psi_score", index=True)
+
+    drift_id: Optional[UUID] = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
 
 
 class AlertRoute(SQLModel, table=True):

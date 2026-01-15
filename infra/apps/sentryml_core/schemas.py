@@ -32,6 +32,7 @@ class ModelItem(SQLModel):
     min_samples: int
     warn_threshold: float
     critical_threshold: float
+    status: Optional[str] = None
 
 
 class MonitorUpdate(SQLModel):

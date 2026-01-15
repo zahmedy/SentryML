@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SentryML – Models</title>
+</head>
+<body>
+  <h1>Models</h1>
+
+  <table border="1">
+    <tr>
+      <th>Model</th>
+      <th>Events</th>
+      <th>Last Seen</th>
+      <th>Monitoring</th>
+    </tr>
+
+    {% for m in models %}
+    <tr>
+      <td>{{ m.model_id }}</td>
+      <td>{{ m.event_count }}</td>
+      <td>{{ m.last_seen_at }}</td>
+      <td>{{ "ON" if m.is_enabled else "OFF" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <br />
+  <a href="/dashboard">Back</a>
+</body>
+</html>

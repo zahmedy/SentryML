@@ -205,6 +205,7 @@ def main() -> int:
                     opened_at=now,
                     closed_at=None,
                     drift_id=drift.drift_id,
+                    state=next_state
                 )
                 session.add(incident)
 

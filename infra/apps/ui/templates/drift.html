@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SentryML – Drift</title>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 40px;
+    }
+    h1 {
+      margin-bottom: 16px;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th {
+      background: #fafafa;
+    }
+    .ok {
+      color: #065f46;
+      font-weight: 600;
+    }
+    .warn {
+      color: #92400e;
+      font-weight: 600;
+    }
+    .critical {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Drift</h1>
+  <p><a href="/">← Back to dashboard</a></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Monitor</th>
+        <th>Metric</th>
+        <th>Value</th>
+        <th>Warn</th>
+        <th>Critical</th>
+        <th>Status</th>
+        <th>Window</th>
+        <th>Calculated</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in drift %}
+      <tr>
+        <td>{{ d.model_id }}</td>
+        <td>{{ d.monitor_id }}</td>
+        <td>{{ d.metric }}</td>
+        <td>{{ "%.4f"|format(d.value) }}</td>
+        <td>{{ d.warn_threshold }}</td>
+        <td>{{ d.critical_threshold }}</td>
+        <td class="{{ d.status }}">{{ d.status }}</td>
+        <td>
+          {{ d.baseline_start }} → {{ d.current_end }}
+        </td>
+        <td>{{ d.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9">No drift calculated yet</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>

@@ -1,26 +1,30 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SentryML – Models</title>
+</head>
+<body>
+  <h1>Models</h1>
 
-{% block content %}
-<h2>Models</h2>
-
-<table>
-  <thead>
+  <table border="1">
     <tr>
       <th>Model</th>
-      <th>Last seen</th>
-      <th>Event count</th>
+      <th>Events</th>
+      <th>Last Seen</th>
       <th>Monitoring</th>
     </tr>
-  </thead>
-  <tbody>
+
     {% for m in models %}
     <tr>
       <td>{{ m.model_id }}</td>
-      <td>{{ m.last_seen_at }}</td>
       <td>{{ m.event_count }}</td>
-      <td>{{ "ON" if m.is_monitored else "OFF" }}</td>
+      <td>{{ m.last_seen_at }}</td>
+      <td>{{ "ON" if m.is_enabled else "OFF" }}</td>
     </tr>
     {% endfor %}
-  </tbody>
-</table>
-{% endblock %}
+  </table>
+
+  <br />
+  <a href="/dashboard">Back</a>
+</body>
+</html>

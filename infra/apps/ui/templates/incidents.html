@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SentryML – Incidents</title>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 40px;
+    }
+    h1 {
+      margin-bottom: 16px;
+    }
+    a {
+      text-decoration: none;
+      color: #2563eb;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border-bottom: 1px solid #eee;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #fafafa;
+      font-weight: 600;
+    }
+    .open {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+    .closed {
+      color: #065f46;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Incidents</h1>
+  <p><a href="/">← Back to dashboard</a></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Model</th>
+        <th>Metric</th>
+        <th>Value</th>
+        <th>Threshold</th>
+        <th>Status</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in incidents %}
+      <tr>
+        <td>{{ i.id }}</td>
+        <td>{{ i.model_name }}</td>
+        <td>{{ i.metric }}</td>
+        <td>{{ i.value }}</td>
+        <td>{{ i.threshold }}</td>
+        <td class="{{ i.status }}">{{ i.status }}</td>
+        <td>{{ i.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">No incidents found</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>
