@@ -125,9 +125,17 @@ def dashboard(request: Request):
     if not request.cookies.get("sentryml_session"):
         return RedirectResponse("/", status_code=302)
 
+    resp = requests.get(f"{API_BASE}/v1/ui/dashboard", cookies=api_cookie_jar(request), timeout=5)
+    resp.raise_for_status()
+    data = resp.json()
+
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request},
+        {
+            "request": request,
+            "open_incidents": data.get("open_incidents", []),
+            "latest_drift": data.get("latest_drift", []),
+        },
     )
 
 @app.get("/models", response_class=HTMLResponse)
@@ -215,4 +223,3 @@ def drift(
             "model_id": model_id,
         },
     )
-

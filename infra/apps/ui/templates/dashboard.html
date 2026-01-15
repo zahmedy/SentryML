@@ -1,54 +1,50 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>SentryML – Dashboard</title>
-  <meta charset="utf-8" />
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      margin: 40px;
-    }
-    h1 {
-      margin-bottom: 20px;
-    }
-    .nav {
-      display: flex;
-      gap: 16px;
-    }
-    .card {
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      text-decoration: none;
-      color: black;
-      width: 160px;
-      text-align: center;
-    }
-    .card:hover {
-      background: #f5f5f5;
-    }
-  </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% block content %}
 
-  <h1>SentryML Dashboard</h1>
+<h2>Dashboard</h2>
 
-  <div class="nav">
-    <a class="card" href="/models">
-      <strong>Models</strong><br/>
-      <small>Registered models</small>
-    </a>
+<h3>Open Incidents</h3>
+{% if open_incidents|length == 0 %}
+  <p>No open incidents 🎉</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr>
+    <th>Model</th>
+    <th>State</th>
+    <th>PSI</th>
+    <th>Opened</th>
+  </tr>
+  {% for i in open_incidents %}
+  <tr>
+    <td>{{ i.model_id }}</td>
+    <td>{{ i.state }}</td>
+    <td>{{ i.value }}</td>
+    <td>{{ i.opened_at }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
 
-    <a class="card" href="/incidents">
-      <strong>Incidents</strong><br/>
-      <small>Open & closed</small>
-    </a>
+<h3 style="margin-top:20px;">Latest Drift</h3>
+{% if latest_drift|length == 0 %}
+  <p>No drift results yet.</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr>
+    <th>Model</th>
+    <th>Status</th>
+    <th>PSI</th>
+    <th>Computed</th>
+  </tr>
+  {% for d in latest_drift %}
+  <tr>
+    <td>{{ d.model_id }}</td>
+    <td>{{ d.status }}</td>
+    <td>{{ d.psi_score if d.psi_score is defined else d.value if d.value is defined else "" }}</td>
+    <td>{{ d.computed_at }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
 
-    <a class="card" href="/drift">
-      <strong>Drift</strong><br/>
-      <small>PSI history</small>
-    </a>
-  </div>
-
-</body>
-</html>
+{% endblock %}

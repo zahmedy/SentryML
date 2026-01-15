@@ -13,6 +13,8 @@ from apps.sentryml_core.schemas import (PredictionEventIn, ModelItem,
 from apps.api.app.security import (get_org_id, verify_password)
 from apps.api.app.routers.auth import router as auth_router
 from apps.api.app.routers.api_keys import router as api_keys_router
+from apps.api.app.routers.ui_dashboard import router as ui_dashboard_router
+
 
 
 
@@ -30,6 +32,7 @@ app = FastAPI(
 
 app.include_router(auth_router)
 app.include_router(api_keys_router)
+app.include_router(ui_dashboard_router)
 
 @app.post("/v1/events/prediction", response_model=PredictionEvent)
 def ingest_predication(
