@@ -3,81 +3,93 @@
 
 <h2>Dashboard</h2>
 
-<h3>Open Incidents</h3>
-{% if open_incidents|length == 0 %}
-  <p>No open incidents 🎉</p>
-{% else %}
-<table border="1" cellpadding="6" cellspacing="0">
-  <tr>
-    <th>Model</th>
-    <th>State</th>
-    <th>PSI</th>
-    <th>Opened</th>
-  </tr>
-  {% for i in open_incidents %}
-  <tr>
-    <td><a href="/models/{{ i.model_id }}">{{ i.model_id }}</a></td>
-    <td>{{ i.state }}</td>
-    <td>{{ i.value }}</td>
-    <td>{{ i.opened_at }}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% endif %}
-
-<h3 style="margin-top:20px;">Latest Drift</h3>
-{% if latest_drift|length == 0 %}
-  <p>No drift results yet.</p>
-{% else %}
-<table border="1" cellpadding="6" cellspacing="0">
-  <tr>
-    <th>Model</th>
-    <th>Status</th>
-    <th>PSI</th>
-    <th>Computed</th>
-  </tr>
-  {% for d in latest_drift %}
-  <tr>
-    <td><a href="/models/{{ d.model_id }}">{{ d.model_id }}</a></td>
-    <td>{{ d.status }}</td>
-    <td>{{ d.psi_score if d.psi_score is defined else d.value if d.value is defined else "" }}</td>
-    <td>{{ d.computed_at }}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% endif %}
-
-<h3 style="margin-top:20px;">Models</h3>
 {% if models|length == 0 %}
-  <p>No models yet.</p>
+  <p>No models yet. Send prediction events to see models appear.</p>
 {% else %}
-<table border="1" cellpadding="6" cellspacing="0">
-  <tr>
-    <th>Model</th>
-    <th>Events</th>
-    <th>Last Seen</th>
-    <th>Monitoring</th>
-  </tr>
-  {% for m in models %}
-  <tr>
-    <td><a href="/models/{{ m.model_id }}">{{ m.model_id }}</a></td>
-    <td>{{ m.event_count }}</td>
-    <td>{{ m.last_seen_at }}</td>
-    <td>
-      {% if not m.monitor_enabled %}
-        Disabled
-        <form action="/models/{{ m.model_id }}/monitoring/enable" method="post" style="display:inline;">
-          <button type="submit">Enable</button>
-        </form>
-      {% else %}
-        Enabled
-        <form action="/models/{{ m.model_id }}/monitoring/disable" method="post" style="display:inline;">
-          <button type="submit">Disable</button>
-        </form>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
+<table border="1" cellpadding="8" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Events</th>
+      <th>Last Seen</th>
+      <th>Last PSI</th>
+      <th>Drift</th>
+      <th>Incident</th>
+      <th>Monitoring</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in models %}
+    <tr>
+      <!-- Model -->
+      <td>
+        <a href="/models/{{ m.model_id }}">{{ m.model_id }}</a>
+      </td>
+
+      <!-- Events -->
+      <td>{{ m.event_count or 0 }}</td>
+
+      <!-- Last Seen -->
+      <td>{{ m.last_seen_at }}</td>
+
+      <!-- Last PSI -->
+      <td>
+        {% if m.last_psi_score is not none %}
+          {{ "%.4f"|format(m.last_psi_score) }}
+        {% else %}
+          —
+        {% endif %}
+      </td>
+
+      <!-- Drift -->
+      <td>
+        {% if m.drift_severity == "ok" %}
+          🟢 ok
+        {% elif m.drift_severity == "warn" %}
+          🟡 warn
+        {% elif m.drift_severity == "critical" %}
+          🔴 critical
+        {% else %}
+          —
+        {% endif %}
+      </td>
+
+      <!-- Incident -->
+      <td>
+        {% if m.open_incident_state == "warn" %}
+          🟡 warn
+        {% elif m.open_incident_state == "critical" %}
+          🔴 critical
+        {% else %}
+          —
+        {% endif %}
+      </td>
+
+      <!-- Monitoring -->
+      <td>
+        {% if m.monitor_enabled %}
+          Enabled
+          <form
+            action="/models/{{ m.model_id }}/monitoring/disable"
+            method="post"
+            style="display:inline"
+          >
+            <button type="submit">Disable</button>
+          </form>
+        {% else %}
+          Disabled
+          <form
+            action="/models/{{ m.model_id }}/monitoring/enable"
+            method="post"
+            style="display:inline"
+          >
+            <button type="submit">Enable</button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
 {% endif %}
 

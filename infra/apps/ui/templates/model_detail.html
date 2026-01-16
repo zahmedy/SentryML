@@ -47,4 +47,27 @@
 </table>
 {% endif %}
 
+<h3 style="margin-top:20px;">Recent Predictions</h3>
+{% if recent_predictions|length == 0 %}
+  <p>No prediction events yet.</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr>
+    <th>Time</th>
+    <th>Entity</th>
+    <th>Prediction</th>
+    <th>Score</th>
+  </tr>
+  {% for p in recent_predictions %}
+  <tr>
+    <td>{{ p.event_time }}</td>
+    <td>{{ p.entity_id }}</td>
+    <td>{{ p.prediction }}</td>
+    <td>{{ "%.4f"|format(p.score) if p.score is not none else "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+
 {% endblock %}

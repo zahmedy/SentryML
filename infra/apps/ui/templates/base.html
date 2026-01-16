@@ -4,16 +4,21 @@
   <title>SentryML</title>
   <style>
     body { font-family: sans-serif; margin: 40px; }
+    .header { display: flex; align-items: center; justify-content: space-between; }
     table { border-collapse: collapse; width: 100%; }
     th, td { padding: 8px; border-bottom: 1px solid #ddd; }
     th { text-align: left; }
   </style>
 </head>
 <body>
-  <h1>SentryML</h1>
+  <div class="header">
+    <h1>
+      <a href="/dashboard" style="text-decoration:none; color:inherit;">SentryML</a>
+    </h1>
+    <form action="/logout" method="post" style="display:inline;">
+      <button type="submit">Logout</button>
+    </form>
+  </div>
   {% block content %}{% endblock %}
-  <form action="/logout" method="post" style="display:inline;">
-  <button type="submit">Logout</button>
-  </form>
 </body>
 </html>

@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
@@ -16,6 +17,14 @@ def psi_to_severity(psi: float, warn: float, critical: float) -> str:
         return "warn"
     return "critical"
 
+INC_RANK = {"critical": 2, "warn": 1, None: 0}
+DRIFT_RANK = {"critical": 3, "warn": 2, "ok": 1, None: 0}
+
+def sort_key(r):
+    inc_rank = INC_RANK.get(r["open_incident_state"], 0)
+    drift_rank = DRIFT_RANK.get(r["drift_severity"], 0)
+    last_seen_at = r.get("last_seen_at") or datetime.min
+    return (-inc_rank, -drift_rank, last_seen_at)
 
 @router.get("/dashboard")
 def ui_dashboard(
@@ -85,5 +94,6 @@ def ui_dashboard(
             "open_incident_opened_at": inc.opened_at if inc else None,
             "open_incident_value": inc.value if inc else None,
         })
+    out.sort(key=sort_key)
 
     return {"models": out}

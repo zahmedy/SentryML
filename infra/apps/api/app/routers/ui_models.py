@@ -3,7 +3,8 @@ from sqlmodel import Session, select
 from datetime import datetime
 
 from apps.sentryml_core.db import get_session
-from apps.sentryml_core.models import DriftResult, Incident, User, MonitorConfig
+from apps.sentryml_core.models import (DriftResult, Incident, User, 
+                                    MonitorConfig, PredictionEvent)
 from apps.api.app.deps_auth import get_current_user
 
 router = APIRouter(prefix="/v1/ui", tags=["ui"])
@@ -30,7 +31,18 @@ def ui_model_detail(
         .limit(limit)
     ).all()
 
-    return {"model_id": model_id, "drift": drift, "incidents": incidents}
+    preds = session.exec(
+    select(PredictionEvent)
+    .where((PredictionEvent.org_id == user.org_id) & (PredictionEvent.model_id == model_id))
+    .order_by(PredictionEvent.event_time.desc())
+    .limit(50)
+        ).all()
+
+    return {"model_id": model_id, 
+            "drift": drift, 
+            "incidents": incidents,
+            "recent_predictions": preds,
+            }
 
 @router.post("/models/{model_id}/monitoring/enable")
 def enable_monitoring(

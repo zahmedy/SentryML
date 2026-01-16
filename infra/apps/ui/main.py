@@ -157,6 +157,7 @@ def model_detail(request: Request, model_id: str):
             "model_id": data["model_id"],
             "drift": data["drift"],
             "incidents": data["incidents"],
+            "recent_predictions": data.get("recent_predictions", []),
         },
     )
 
@@ -179,5 +180,4 @@ def ui_disable_monitoring(request: Request, model_id: str):
     )
     resp.raise_for_status()
     return RedirectResponse("/dashboard", status_code=303)
-
 
