@@ -17,9 +17,9 @@
   {% for i in incidents %}
   <tr>
     <td>{{ i.state }}</td>
-    <td>{{ i.value }}</td>
-    <td>{{ i.opened_at }}</td>
-    <td>{{ i.closed_at or "" }}</td>
+    <td>{{ i.value|fmt_num }}</td>
+    <td>{{ i.opened_at|fmt_dt }}</td>
+    <td>{{ i.closed_at|fmt_dt }}</td>
   </tr>
   {% endfor %}
 </table>
@@ -38,8 +38,8 @@
   </tr>
   {% for d in drift %}
   <tr>
-    <td>{{ d.computed_at }}</td>
-    <td>{{ d.psi_score }}</td>
+    <td>{{ d.computed_at|fmt_dt }}</td>
+    <td>{{ d.psi_score|fmt_num }}</td>
     <td>{{ d.baseline_start }} → {{ d.baseline_end }} (n={{ d.baseline_n }})</td>
     <td>{{ d.current_start }} → {{ d.current_end }} (n={{ d.current_n }})</td>
   </tr>
@@ -47,27 +47,51 @@
 </table>
 {% endif %}
 
+<form method="get" action="/models/{{ model_id }}" style="margin:10px 0;">
+  <label>Recent predictions</label>
+  <select name="pred_limit" onchange="this.form.submit()">
+    <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
+    <option value="200" {% if pred_limit == 200 %}selected{% endif %}>200</option>
+    <option value="1000" {% if pred_limit == 1000 %}selected{% endif %}>1000</option>
+  </select>
+</form>
+
 <h3 style="margin-top:20px;">Recent Predictions</h3>
+
+<form method="get" action="/models/{{ model_id }}" style="margin:10px 0;">
+  <label>Show last</label>
+  <select name="pred_limit" onchange="this.form.submit()">
+    <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
+    <option value="200" {% if pred_limit == 200 %}selected{% endif %}>200</option>
+    <option value="1000" {% if pred_limit == 1000 %}selected{% endif %}>1000</option>
+  </select>
+</form>
+
 {% if recent_predictions|length == 0 %}
   <p>No prediction events yet.</p>
 {% else %}
-<table border="1" cellpadding="6" cellspacing="0">
-  <tr>
-    <th>Time</th>
-    <th>Entity</th>
-    <th>Prediction</th>
-    <th>Score</th>
-  </tr>
-  {% for p in recent_predictions %}
-  <tr>
-    <td>{{ p.event_time }}</td>
-    <td>{{ p.entity_id }}</td>
-    <td>{{ p.prediction }}</td>
-    <td>{{ "%.4f"|format(p.score) if p.score is not none else "" }}</td>
-  </tr>
-  {% endfor %}
-</table>
+<div style="max-height:700px; overflow-y:auto; border:1px solid #ddd; padding:6px;">
+  <table border="1" cellpadding="6" cellspacing="0" width="100%">
+    <tr>
+      <th>Time</th>
+      <th>Entity</th>
+      <th>Prediction</th>
+      <th>Score</th>
+    </tr>
+    {% for p in recent_predictions %}
+    <tr>
+      <td>{{ p.event_time|fmt_dt }}</td>
+      <td>{{ p.entity_id }}</td>
+      <td>{{ p.prediction }}</td>
+      <td>
+        {% if p.score is not none %}
+          {{ p.score|fmt_num }}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
 {% endif %}
-
 
 {% endblock %}

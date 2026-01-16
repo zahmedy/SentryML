@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Literal, Tuple
+from typing import Tuple
 
 from sqlmodel import Session, select
 
@@ -12,10 +12,12 @@ from apps.sentryml_core.models import (
     DriftResult,
     Incident,
     AlertRoute,
+    IncidentSeverity,
+    IncidentState,
 )
 from apps.sentryml_core.drift import psi_quantile
 from apps.worker.worker.slack import send_slack
-from apps.worker.worker.incident_fsm import incident_fsm, State
+from apps.worker.worker.incident_fsm import incident_fsm
 
 
 # -------------------------
@@ -49,12 +51,12 @@ def severity_for_psi(
     psi_score: float,
     warn: float,
     critical: float,
-) -> Literal["ok", "warn", "critical"]:
+) -> IncidentSeverity:
     if psi_score >= critical:
-        return "critical"
+        return IncidentSeverity.CRITICAL
     if psi_score >= warn:
-        return "warn"
-    return "ok"
+        return IncidentSeverity.WARN
+    return IncidentSeverity.NONE
 
 
 # -------------------------
@@ -183,12 +185,12 @@ def main() -> int:
                 )
             ).first()
 
-            current_state: State = (
-                "none" if open_incident is None else open_incident.severity
+            current_severity: IncidentSeverity = (
+                IncidentSeverity.NONE if open_incident is None else open_incident.severity
             )
 
-            next_state, action = incident_fsm(
-                current_state,
+            next_severity, action = incident_fsm(
+                current_severity,
                 new_severity,
             )
 
@@ -200,22 +202,24 @@ def main() -> int:
                     org_id=m.org_id,
                     model_id=m.model_id,
                     metric="psi_score",
-                    severity=next_state,
+                    severity=next_severity,
                     value=psi_score,
                     opened_at=now,
                     closed_at=None,
                     drift_id=drift.drift_id,
-                    state=next_state
+                    state=IncidentState.OPEN,
                 )
                 session.add(incident)
 
             elif action in {"escalate", "downgrade", "update"}:
-                open_incident.severity = next_state
+                open_incident.severity = next_severity
                 open_incident.value = psi_score
                 open_incident.drift_id = drift.drift_id
                 session.add(open_incident)
 
             elif action == "resolve":
+                open_incident.state = IncidentState.RESOLVED
+                open_incident.resolved_at = now
                 open_incident.closed_at = now
                 session.add(open_incident)
 
@@ -230,7 +234,7 @@ def main() -> int:
                         format_slack_message(
                             action=action,
                             model_id=m.model_id,
-                            severity=next_state,
+                            severity=next_severity.value,
                             psi_score=psi_score,
                             baseline_n=len(baseline_scores),
                             current_n=len(current_scores),

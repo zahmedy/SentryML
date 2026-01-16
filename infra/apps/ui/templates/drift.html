@@ -73,7 +73,7 @@
         <td>
           {{ d.baseline_start }} → {{ d.current_end }}
         </td>
-        <td>{{ d.created_at }}</td>
+        <td>{{ d.created_at|fmt_dt }}</td>
       </tr>
       {% else %}
       <tr>

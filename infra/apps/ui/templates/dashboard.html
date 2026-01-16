@@ -30,15 +30,11 @@
       <td>{{ m.event_count or 0 }}</td>
 
       <!-- Last Seen -->
-      <td>{{ m.last_seen_at }}</td>
+      <td>{{ m.last_seen_at|fmt_dt }}</td>
 
       <!-- Last PSI -->
       <td>
-        {% if m.last_psi_score is not none %}
-          {{ "%.4f"|format(m.last_psi_score) }}
-        {% else %}
-          —
-        {% endif %}
+        {{ m.last_psi_score|fmt_num }}
       </td>
 
       <!-- Drift -->
@@ -56,10 +52,12 @@
 
       <!-- Incident -->
       <td>
-        {% if m.open_incident_state == "warn" %}
-          🟡 warn
-        {% elif m.open_incident_state == "critical" %}
-          🔴 critical
+        {% if m.open_incident_id %}
+          <a href="/incidents/{{ m.open_incident_id }}">
+            {% if m.open_incident_severity == "warn" %}🟡{% elif m.open_incident_severity == "critical" %}🔴{% endif %}
+            {{ m.open_incident_status }}
+            ({{ (m.open_incident_id|string)[:10] }})
+          </a>
         {% else %}
           —
         {% endif %}

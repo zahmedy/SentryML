@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display:flex; align-items:center; justify-content:space-between;">
+  <h2 style="margin:0;">Incident</h2>
+  <div>
+    {% if incident.state == "open" %}
+      <form action="/incidents/{{ incident.incident_id }}/ack" method="post" style="display:inline;">
+        <button type="submit">Acknowledge</button>
+      </form>
+    {% elif incident.state == "ack" %}
+      <form action="/incidents/{{ incident.incident_id }}/resolve" method="post" style="display:inline;">
+        <button type="submit">Resolve</button>
+      </form>
+    {% elif incident.state == "resolved" %}
+      <form action="/incidents/{{ incident.incident_id }}/close" method="post" style="display:inline;">
+        <button type="submit">Close</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd;">
+  <div><b>Model:</b> <a href="/models/{{ incident.model_id }}">{{ incident.model_id }}</a></div>
+  <div><b>Metric:</b> {{ incident.metric }}</div>
+  <div><b>Severity:</b>
+    {% if incident.severity == "critical" %}🔴 critical
+    {% elif incident.severity == "warn" %}🟡 warn
+    {% elif incident.severity == "none" %}—{% else %}{{ incident.severity }}{% endif %}
+  </div>
+  <div><b>State:</b> {{ incident.state }}</div>
+  <div><b>Value:</b> {{ incident.value|fmt_num }}</div>
+  <div><b>Opened:</b> {{ incident.opened_at|fmt_dt }}</div>
+  <div><b>Acknowledged:</b> {{ incident.acknowledged_at|fmt_dt }}</div>
+  <div><b>Resolved:</b> {{ incident.resolved_at|fmt_dt }}</div>
+  <div><b>Closed:</b> {{ incident.closed_at|fmt_dt }}</div>
+  <div style="margin-top: 8px; color: #666; font-size: 0.9em;">
+    Note: Severity updates automatically based on PSI score and your thresholds.
+  </div>
+
+</div>
+
+<h3>Timeline</h3>
+
+{% if events|length == 0 %}
+  <p>No events recorded for this incident.</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0" width="100%">
+  <tr>
+    <th>Time</th>
+    <th>Actor</th>
+    <th>What happened</th>
+    <th>PSI</th>
+  </tr>
+
+  {% for e in events %}
+  <tr>
+    <td>{{ e.ts|fmt_dt }}</td>
+    <td>
+      {{ e.actor }}
+      {% if e.actor_user_id %} ({{ e.actor_user_id }}){% endif %}
+    </td>
+    <td>
+      {% if e.action == "open" %}
+        Incident opened ({{ e.new_severity }})
+      {% elif e.action == "escalate" %}
+        Severity escalated to {{ e.new_severity }}
+      {% elif e.action == "downgrade" %}
+        Severity downgraded to {{ e.new_severity }}
+      {% elif e.action == "update" %}
+        Updated ({{ e.new_severity }})
+      {% elif e.action == "ack" %}
+        Acknowledged
+      {% elif e.action == "resolve" %}
+        Resolved
+      {% elif e.action == "close" %}
+        Closed
+      {% else %}
+        {{ e.action }}
+      {% endif %}
+      <span style="color:#666;">
+        ({{ e.prev_state }} → {{ e.new_state }})
+      </span>
+    </td>
+    <td>
+      {{ e.value|fmt_num }}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% endblock %}

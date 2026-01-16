@@ -49,21 +49,21 @@
         <th>Model</th>
         <th>Metric</th>
         <th>Value</th>
-        <th>Threshold</th>
-        <th>Status</th>
-        <th>Created</th>
+        <th>Severity</th>
+        <th>State</th>
+        <th>Opened</th>
       </tr>
     </thead>
     <tbody>
       {% for i in incidents %}
       <tr>
-        <td>{{ i.id }}</td>
-        <td>{{ i.model_name }}</td>
+        <td>{{ (i.incident_id|string)[:10] }}</td>
+        <td>{{ i.model_id }}</td>
         <td>{{ i.metric }}</td>
-        <td>{{ i.value }}</td>
-        <td>{{ i.threshold }}</td>
-        <td class="{{ i.status }}">{{ i.status }}</td>
-        <td>{{ i.created_at }}</td>
+        <td>{{ i.value|fmt_num }}</td>
+        <td>{{ i.severity }}</td>
+        <td class="{{ i.state }}">{{ i.state }}</td>
+        <td>{{ i.opened_at|fmt_dt }}</td>
       </tr>
       {% else %}
       <tr>

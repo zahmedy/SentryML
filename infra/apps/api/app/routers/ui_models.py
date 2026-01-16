@@ -38,11 +38,12 @@ def ui_model_detail(
     .limit(50)
         ).all()
 
-    return {"model_id": model_id, 
-            "drift": drift, 
-            "incidents": incidents,
-            "recent_predictions": preds,
-            }
+    return {
+        "model_id": model_id, 
+        "drift": drift, 
+        "incidents": incidents,
+        "recent_predictions": preds,
+    }
 
 @router.post("/models/{model_id}/monitoring/enable")
 def enable_monitoring(

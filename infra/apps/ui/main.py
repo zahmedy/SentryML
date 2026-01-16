@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import requests
 
 from fastapi import FastAPI, Request, Form
@@ -10,6 +11,33 @@ app = FastAPI(title="SentryML UI")
 templates = Jinja2Templates(directory="apps/ui/templates")
 
 API_BASE = os.getenv("API_BASE_URL", "http://api:8000")
+
+def _fmt_dt(value) -> str:
+    if not value:
+        return "—"
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return value
+    else:
+        return str(value)
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+templates.env.filters["fmt_dt"] = _fmt_dt
+
+def _fmt_num(value, places: int = 4) -> str:
+    if value is None or value == "":
+        return "—"
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return f"{num:.{places}f}"
+
+templates.env.filters["fmt_num"] = _fmt_num
 
 def api_cookie_jar(request: Request) -> dict:
     sid = request.cookies.get("sentryml_session")
@@ -138,12 +166,13 @@ def dashboard(request: Request):
     )
 
 @app.get("/models/{model_id}", response_class=HTMLResponse)
-def model_detail(request: Request, model_id: str):
+def model_detail(request: Request, model_id: str, pred_limit: int = 200):
     if not request.cookies.get("sentryml_session"):
         return RedirectResponse("/", status_code=302)
 
     resp = requests.get(
         f"{API_BASE}/v1/ui/models/{model_id}",
+        params={"pred_limit": pred_limit},
         cookies=api_cookie_jar(request),
         timeout=5,
     )
@@ -157,6 +186,7 @@ def model_detail(request: Request, model_id: str):
             "model_id": data["model_id"],
             "drift": data["drift"],
             "incidents": data["incidents"],
+            "pred_limit": pred_limit,
             "recent_predictions": data.get("recent_predictions", []),
         },
     )
@@ -181,3 +211,58 @@ def ui_disable_monitoring(request: Request, model_id: str):
     resp.raise_for_status()
     return RedirectResponse("/dashboard", status_code=303)
 
+
+@app.get("/incidents/{incident_id}", response_class=HTMLResponse)
+def incident_detail(request: Request, incident_id: str):
+    if not request.cookies.get("sentryml_session"):
+        return RedirectResponse("/", status_code=302)
+
+    resp = requests.get(
+        f"{API_BASE}/v1/ui/incidents/{incident_id}",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+
+    return templates.TemplateResponse(
+        "incident_detail.html",
+        {
+            "request": request,
+            "incident": data["incident"],
+            "events": data.get("events", []),
+        },
+    )
+
+
+@app.post("/incidents/{incident_id}/ack")
+def ui_incident_ack(request: Request, incident_id: str):
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/incidents/{incident_id}/ack",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse(f"/incidents/{incident_id}", status_code=303)
+
+
+@app.post("/incidents/{incident_id}/close")
+def ui_incident_close(request: Request, incident_id: str):
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/incidents/{incident_id}/close",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse(f"/incidents/{incident_id}", status_code=303)
+
+
+@app.post("/incidents/{incident_id}/resolve")
+def ui_incident_resolve(request: Request, incident_id: str):
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/incidents/{incident_id}/resolve",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse(f"/incidents/{incident_id}", status_code=303)

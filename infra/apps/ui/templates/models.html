@@ -18,7 +18,7 @@
     <tr>
       <td>{{ m.model_id }}</td>
       <td>{{ m.event_count }}</td>
-      <td>{{ m.last_seen_at }}</td>
+      <td>{{ m.last_seen_at|fmt_dt }}</td>
       <td>{{ "ON" if m.is_enabled else "OFF" }}</td>
     </tr>
     {% endfor %}

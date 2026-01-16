@@ -1,45 +1,45 @@
-from typing import Literal, Tuple
+from typing import Tuple
+
+from apps.sentryml_core.models import IncidentSeverity
 
 
 # -------------------------
 # INCIDENT FSM
 # -------------------------
 
-State = Literal["none", "warn", "critical"]
-Severity = Literal["ok", "warn", "critical"]
-Action = Literal["noop", "open", "escalate", "downgrade", "update", "resolve"]
+Action = str
 
 
 def incident_fsm(
-    current_state: State,
-    new_severity: Severity,
-) -> Tuple[State, Action]:
+    current_severity: IncidentSeverity,
+    new_severity: IncidentSeverity,
+) -> Tuple[IncidentSeverity, Action]:
     """
-    Decide next incident state and action.
+    Decide next incident severity and action.
     """
 
-    if current_state == "none":
-        if new_severity == "ok":
-            return "none", "noop"
-        if new_severity == "warn":
-            return "warn", "open"
-        if new_severity == "critical":
-            return "critical", "open"
+    if current_severity == IncidentSeverity.NONE:
+        if new_severity == IncidentSeverity.NONE:
+            return IncidentSeverity.NONE, "noop"
+        if new_severity == IncidentSeverity.WARN:
+            return IncidentSeverity.WARN, "open"
+        if new_severity == IncidentSeverity.CRITICAL:
+            return IncidentSeverity.CRITICAL, "open"
 
-    if current_state == "warn":
-        if new_severity == "ok":
-            return "none", "resolve"
-        if new_severity == "warn":
-            return "warn", "update"
-        if new_severity == "critical":
-            return "critical", "escalate"
+    if current_severity == IncidentSeverity.WARN:
+        if new_severity == IncidentSeverity.NONE:
+            return IncidentSeverity.NONE, "resolve"
+        if new_severity == IncidentSeverity.WARN:
+            return IncidentSeverity.WARN, "update"
+        if new_severity == IncidentSeverity.CRITICAL:
+            return IncidentSeverity.CRITICAL, "escalate"
 
-    if current_state == "critical":
-        if new_severity == "ok":
-            return "none", "resolve"
-        if new_severity == "warn":
-            return "warn", "downgrade"
-        if new_severity == "critical":
-            return "critical", "update"
+    if current_severity == IncidentSeverity.CRITICAL:
+        if new_severity == IncidentSeverity.NONE:
+            return IncidentSeverity.NONE, "resolve"
+        if new_severity == IncidentSeverity.WARN:
+            return IncidentSeverity.WARN, "downgrade"
+        if new_severity == IncidentSeverity.CRITICAL:
+            return IncidentSeverity.CRITICAL, "update"
 
     raise RuntimeError("Invalid FSM transition")

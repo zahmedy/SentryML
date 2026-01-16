@@ -21,7 +21,7 @@ INC_RANK = {"critical": 2, "warn": 1, None: 0}
 DRIFT_RANK = {"critical": 3, "warn": 2, "ok": 1, None: 0}
 
 def sort_key(r):
-    inc_rank = INC_RANK.get(r["open_incident_state"], 0)
+    inc_rank = INC_RANK.get(r["open_incident_status"], 0)
     drift_rank = DRIFT_RANK.get(r["drift_severity"], 0)
     last_seen_at = r.get("last_seen_at") or datetime.min
     return (-inc_rank, -drift_rank, last_seen_at)
@@ -90,7 +90,8 @@ def ui_dashboard(
             ),
 
             "open_incident_id": str(inc.incident_id) if inc else None,
-            "open_incident_state": inc.state if inc else None,
+            "open_incident_status": inc.state.value if inc else None,
+            "open_incident_severity": inc.severity.value.lower() if inc else None,
             "open_incident_opened_at": inc.opened_at if inc else None,
             "open_incident_value": inc.value if inc else None,
         })

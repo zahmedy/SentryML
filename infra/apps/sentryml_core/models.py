@@ -120,9 +120,16 @@ class DriftResult(SQLModel, table=True):
 
 
 class IncidentState(str, Enum):
-    NONE = "none"
-    WARN = "warn"
-    CRITICAL = "critical"
+    OPEN = "open"
+    ACK = "ack"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+class IncidentSeverity(str, Enum):
+    NONE = "NONE"
+    WARN = "WARN"
+    CRITICAL = "CRITICAL"
+
 
 class Incident(SQLModel, table=True):
     __tablename__ = "incidents"
@@ -133,44 +140,57 @@ class Incident(SQLModel, table=True):
     model_id: str = Field(index=True)
 
     metric: str = Field(default="psi_score", index=True)
-    state: IncidentState = Field(default=IncidentState.NONE, index=True)
-    severity: str = Field(index=True)  # keep for now, or replace later
+    state: IncidentState = Field(default=IncidentState.OPEN, index=True)
+    severity: IncidentSeverity = Field(default=IncidentSeverity.NONE ,index=True)  # keep for now, or replace later
+    acknowledged_by_user_id: Optional[UUID] = Field(index=True)
     value: float
 
     opened_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    acknowledged_at: Optional[datetime] = Field(default=None, index=True)
+    resolved_at: Optional[datetime] = Field(default=None, index=True)
     closed_at: Optional[datetime] = Field(default=None, index=True)
 
     drift_id: Optional[UUID] = None
 
 
-class IncidentAction(str, Enum):
+class IncidentEventAction(str, Enum):
     NOOP = "noop"
     OPEN = "open"
     ESCALATE = "escalate"
     DOWNGRADE = "downgrade"
     UPDATE = "update"
+    ACK = "ack"
     RESOLVE = "resolve"
+    CLOSE = "close"
 
-class IncidentTransition(SQLModel, table=True):
-    __tablename__ = "incident_transitions"
 
-    transition_id: UUID = Field(default_factory=uuid4, primary_key=True)
+class IncidentEventActor(str, Enum):
+    WORKER = "worker"
+    USER = "user"
 
+
+class IncidentEvent(SQLModel, table=True):
+    __tablename__ = "incident_events"
+
+    event_id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    incident_id: UUID = Field(index=True)
     org_id: UUID = Field(index=True)
     model_id: str = Field(index=True)
-    incident_id: UUID = Field(index=True)
+    metric: str = Field(index=True)
 
-    from_state: IncidentState = Field(index=True)
-    to_state: IncidentState = Field(index=True)
-    action: IncidentAction = Field(index=True)
+    ts: datetime = Field(default_factory=datetime.utcnow, index=True)
+    action: str = Field(index=True)
 
-    # snapshot of the decision input
-    severity: str = Field(index=True)  # "ok" | "warn" | "critical"
-    value: float
-    metric: str = Field(default="psi_score", index=True)
+    prev_state: str = Field(index=True)
+    new_state: str = Field(index=True)
 
-    drift_id: Optional[UUID] = Field(default=None, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    prev_severity: Optional[str] = Field(default=None, index=True)
+    new_severity: Optional[str] = Field(default=None, index=True)
+    value: Optional[float] = None
+
+    actor: str = Field(index=True)
+    actor_user_id: Optional[UUID] = Field(default=None, index=True)
 
 
 class AlertRoute(SQLModel, table=True):
