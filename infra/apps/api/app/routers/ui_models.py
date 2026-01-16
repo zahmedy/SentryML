@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
+from datetime import datetime
 
 from apps.sentryml_core.db import get_session
-from apps.sentryml_core.models import DriftResult, Incident, User
+from apps.sentryml_core.models import DriftResult, Incident, User, MonitorConfig
 from apps.api.app.deps_auth import get_current_user
 
 router = APIRouter(prefix="/v1/ui", tags=["ui"])
@@ -30,3 +31,44 @@ def ui_model_detail(
     ).all()
 
     return {"model_id": model_id, "drift": drift, "incidents": incidents}
+
+@router.post("/models/{model_id}/monitoring/enable")
+def enable_monitoring(
+    model_id: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    cfg = session.exec(
+        select(MonitorConfig).where(
+            (MonitorConfig.org_id == user.org_id) & (MonitorConfig.model_id == model_id)
+        )
+    ).first()
+    if not cfg:
+        raise HTTPException(status_code=404, detail="MonitorConfig not found")
+
+    cfg.is_enabled = True
+    cfg.updated_at = datetime.utcnow()
+    session.add(cfg)
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/models/{model_id}/monitoring/disable")
+def disable_monitoring(
+    model_id: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    cfg = session.exec(
+        select(MonitorConfig).where(
+            (MonitorConfig.org_id == user.org_id) & (MonitorConfig.model_id == model_id)
+        )
+    ).first()
+    if not cfg:
+        raise HTTPException(status_code=404, detail="MonitorConfig not found")
+
+    cfg.is_enabled = False
+    cfg.updated_at = datetime.utcnow()
+    session.add(cfg)
+    session.commit()
+    return {"ok": True}

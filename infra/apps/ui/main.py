@@ -133,6 +133,7 @@ def dashboard(request: Request):
             "request": request,
             "open_incidents": data.get("open_incidents", []),
             "latest_drift": data.get("latest_drift", []),
+            "models": data.get("models", []),
         },
     )
 
@@ -159,5 +160,24 @@ def model_detail(request: Request, model_id: str):
         },
     )
 
+@app.post("/models/{model_id}/monitoring/enable")
+def ui_enable_monitoring(request: Request, model_id: str):
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/models/{model_id}/monitoring/enable",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse("/dashboard", status_code=303)
+
+@app.post("/models/{model_id}/monitoring/disable")
+def ui_disable_monitoring(request: Request, model_id: str):
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/models/{model_id}/monitoring/disable",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse("/dashboard", status_code=303)
 
 

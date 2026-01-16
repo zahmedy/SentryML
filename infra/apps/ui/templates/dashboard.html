@@ -47,4 +47,38 @@
 </table>
 {% endif %}
 
+<h3 style="margin-top:20px;">Models</h3>
+{% if models|length == 0 %}
+  <p>No models yet.</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr>
+    <th>Model</th>
+    <th>Events</th>
+    <th>Last Seen</th>
+    <th>Monitoring</th>
+  </tr>
+  {% for m in models %}
+  <tr>
+    <td><a href="/models/{{ m.model_id }}">{{ m.model_id }}</a></td>
+    <td>{{ m.event_count }}</td>
+    <td>{{ m.last_seen_at }}</td>
+    <td>
+      {% if not m.monitor_enabled %}
+        Disabled
+        <form action="/models/{{ m.model_id }}/monitoring/enable" method="post" style="display:inline;">
+          <button type="submit">Enable</button>
+        </form>
+      {% else %}
+        Enabled
+        <form action="/models/{{ m.model_id }}/monitoring/disable" method="post" style="display:inline;">
+          <button type="submit">Disable</button>
+        </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
 {% endblock %}
