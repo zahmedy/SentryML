@@ -16,7 +16,7 @@
   </tr>
   {% for i in open_incidents %}
   <tr>
-    <td>{{ i.model_id }}</td>
+    <td><a href="/models/{{ i.model_id }}">{{ i.model_id }}</a></td>
     <td>{{ i.state }}</td>
     <td>{{ i.value }}</td>
     <td>{{ i.opened_at }}</td>
@@ -38,7 +38,7 @@
   </tr>
   {% for d in latest_drift %}
   <tr>
-    <td>{{ d.model_id }}</td>
+    <td><a href="/models/{{ d.model_id }}">{{ d.model_id }}</a></td>
     <td>{{ d.status }}</td>
     <td>{{ d.psi_score if d.psi_score is defined else d.value if d.value is defined else "" }}</td>
     <td>{{ d.computed_at }}</td>

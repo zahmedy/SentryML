@@ -1,30 +1,50 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>SentryML – Models</title>
-</head>
-<body>
-  <h1>Models</h1>
+{% extends "base.html" %}
+{% block content %}
 
-  <table border="1">
-    <tr>
-      <th>Model</th>
-      <th>Events</th>
-      <th>Last Seen</th>
-      <th>Monitoring</th>
-    </tr>
+<h2>Model: {{ model_id }}</h2>
 
-    {% for m in models %}
-    <tr>
-      <td>{{ m.model_id }}</td>
-      <td>{{ m.event_count }}</td>
-      <td>{{ m.last_seen_at }}</td>
-      <td>{{ "ON" if m.is_enabled else "OFF" }}</td>
-    </tr>
-    {% endfor %}
-  </table>
+<h3>Incidents</h3>
+{% if incidents|length == 0 %}
+  <p>No incidents for this model.</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr>
+    <th>State</th>
+    <th>PSI</th>
+    <th>Opened</th>
+    <th>Closed</th>
+  </tr>
+  {% for i in incidents %}
+  <tr>
+    <td>{{ i.state }}</td>
+    <td>{{ i.value }}</td>
+    <td>{{ i.opened_at }}</td>
+    <td>{{ i.closed_at or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
 
-  <br />
-  <a href="/dashboard">Back</a>
-</body>
-</html>
+<h3 style="margin-top:20px;">Drift History</h3>
+{% if drift|length == 0 %}
+  <p>No drift results yet.</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr>
+    <th>Computed</th>
+    <th>PSI</th>
+    <th>Baseline</th>
+    <th>Current</th>
+  </tr>
+  {% for d in drift %}
+  <tr>
+    <td>{{ d.computed_at }}</td>
+    <td>{{ d.psi_score }}</td>
+    <td>{{ d.baseline_start }} → {{ d.baseline_end }} (n={{ d.baseline_n }})</td>
+    <td>{{ d.current_start }} → {{ d.current_end }} (n={{ d.current_n }})</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% endblock %}

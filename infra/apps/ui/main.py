@@ -151,7 +151,13 @@ def model_detail(request: Request, model_id: str):
 
     return templates.TemplateResponse(
         "model_detail.html",
-        {"request": request, "model_id": model_id, "drift": data["drift"], "incidents": data["incidents"]},
+        {
+            "request": request,
+            "model_id": data["model_id"],
+            "drift": data["drift"],
+            "incidents": data["incidents"],
+        },
     )
+
 
 
