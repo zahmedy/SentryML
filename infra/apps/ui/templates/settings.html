@@ -3,6 +3,33 @@
 
 <h2>Settings</h2>
 
+<div class="notice">
+  <div><b>Org ID</b></div>
+  <code id="org-id">{{ org_id or "—" }}</code>
+  <button type="button" onclick="copyOrgId()" style="margin-left:8px;">Copy</button>
+</div>
+<script>
+  function copyOrgId() {
+    const el = document.getElementById("org-id");
+    if (!el) return;
+    const text = el.innerText;
+    if (text === "—") return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+  function fallbackCopy(text) {
+    const input = document.createElement("input");
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    document.body.removeChild(input);
+  }
+</script>
+
 <h3>Monitoring</h3>
 {% if monitors|length == 0 %}
   <p>No models yet. Send prediction events to see monitoring settings.</p>

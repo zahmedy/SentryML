@@ -102,6 +102,11 @@
     <div class="right">
       <div class="form-card">
         <h2 style="margin-top:0;">Welcome back</h2>
+        {% if error %}
+          <div style="background:#fef2f2; color:#991b1b; padding:10px 12px; border:1px solid #fecaca; border-radius:6px; margin-bottom:12px;">
+            {{ error }}
+          </div>
+        {% endif %}
         <form action="/auth" method="post">
           <label>Email</label>
           <input type="email" name="email" required />

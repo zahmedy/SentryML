@@ -145,5 +145,17 @@
       </div>
     </div>
   </div>
+  <script>
+    const pwd = document.querySelector('input[name="password"]');
+    if (pwd) {
+      pwd.addEventListener("input", () => {
+        if (pwd.value.length > 0 && pwd.value.length < 8) {
+          pwd.setCustomValidity("Please use at least 8 characters");
+        } else {
+          pwd.setCustomValidity("");
+        }
+      });
+    }
+  </script>
 </body>
 </html>

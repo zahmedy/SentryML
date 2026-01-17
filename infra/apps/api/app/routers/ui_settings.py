@@ -60,7 +60,7 @@ def ui_settings(
             "is_enabled": slack.is_enabled,
         }
 
-    return {"monitors": monitors, "slack": slack_data}
+    return {"monitors": monitors, "slack": slack_data, "org_id": str(user.org_id)}
 
 
 @router.post("/settings/slack")

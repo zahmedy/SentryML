@@ -98,5 +98,6 @@ def ui_dashboard(
             "open_incident_value": inc.value if inc else None,
         })
     out.sort(key=sort_key)
+    has_unmonitored = any(not r.get("monitor_enabled") for r in out)
 
-    return {"models": out}
+    return {"models": out, "has_unmonitored": has_unmonitored}

@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div style="display:flex; align-items:center; justify-content:space-between;">
-  <h2 style="margin:0;">Incident</h2>
+<div class="section-header">
+  <div>
+    <h1 class="section-title" style="margin:0;">Incident</h1>
+    <div class="section-sub">Data drift detected: Incoming prediction data has drifted significantly from its baseline distribution.</div>
+  </div>
   <div>
     {% set state_norm = incident.state|string|lower %}
+    {% set severity_norm = incident.severity|string|lower %}
     {% if incident.closed_at %}
       <!-- closed: no actions -->
     {% elif state_norm == "open" %}
@@ -23,83 +27,181 @@
   </div>
 </div>
 
-<div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd;">
-  <div><b>Model:</b> <a href="/models/{{ incident.model_id }}">{{ incident.model_id }}</a></div>
-  <div><b>Metric:</b> {{ incident.metric }}</div>
-  <div><b>Severity:</b>
-    {% if incident.severity == "critical" %}🔴 critical
-    {% elif incident.severity == "warn" %}🟡 warn
-    {% elif incident.severity == "none" %}—{% else %}{{ incident.severity }}{% endif %}
-  </div>
-  <div><b>State:</b> {{ incident.state }}</div>
-  <div><b>Value:</b> {{ incident.value|fmt_num }}</div>
-  <div><b>Drift:</b>
-    {% if incident.drift_id %}
-      <a href="/models/{{ incident.model_id }}#drift-{{ incident.drift_id }}">
-        {{ (incident.drift_id|string)[:10] }}
-      </a>
+<div style="display:grid; grid-template-columns: 1.3fr 0.9fr; gap:16px;">
+  <!-- Left: stats + timeline -->
+  <div>
+    <div class="table-wrap" style="padding:12px;">
+      <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px;">
+        <div>
+          <div class="muted">Model</div>
+          <div><a href="/models/{{ incident.model_id }}">{{ incident.model_id }}</a></div>
+        </div>
+        <div>
+          <div class="muted">Severity</div>
+          {% if severity_norm == "critical" %}
+            <span class="badge badge-critical">critical</span>
+          {% elif severity_norm == "warn" %}
+            <span class="badge badge-warn">warn</span>
+          {% elif severity_norm == "none" %}
+            <span class="badge badge-neutral">—</span>
+          {% else %}
+            <span class="badge badge-neutral">{{ incident.severity }}</span>
+          {% endif %}
+        </div>
+        <div>
+          <div class="muted">State</div>
+          <span class="badge badge-neutral">{{ incident.state }}</span>
+        </div>
+        <div>
+          <div class="muted">PSI</div>
+          <div>{{ incident.value|fmt_num }}</div>
+        </div>
+        <div>
+          <div class="muted">Baseline window</div>
+          <div>
+            {% if drift %}{{ drift.baseline_start|fmt_dt }} → {{ drift.baseline_end|fmt_dt }} (n={{ drift.baseline_n }}){% else %}—{% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="muted">Current window</div>
+          <div>
+            {% if drift %}{{ drift.current_start|fmt_dt }} → {{ drift.current_end|fmt_dt }} (n={{ drift.current_n }}){% else %}—{% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="muted">Threshold</div>
+          <div>
+            {% if monitor %}
+              {% if severity_norm == "critical" %}
+                {{ monitor.critical_threshold|fmt_num_trim }}
+              {% else %}
+                {{ monitor.warn_threshold|fmt_num_trim }}
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="muted">Drift</div>
+          <div>
+            {% if incident.drift_id %}
+              <a href="/models/{{ incident.model_id }}#drift-{{ incident.drift_id }}">{{ (incident.drift_id|string)[:10] }}</a>
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:10px;">
+        PSI increased across the current window and crossed the
+        {% if monitor %}
+          {% if severity_norm == "critical" %}
+            {{ monitor.critical_threshold|fmt_num_trim }}
+          {% else %}
+            {{ monitor.warn_threshold|fmt_num_trim }}
+          {% endif %}
+        {% else %}
+          configured
+        {% endif %}
+        threshold.
+        Severity updates automatically based on PSI score and your thresholds.
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:16px;">
+      <h3 class="section-title">Timeline</h3>
+      <div class="section-sub">A chronological record of how this incident evolved.</div>
+    </div>
+
+    {% if events|length == 0 %}
+      <p>No events recorded for this incident.</p>
     {% else %}
-      —
+    <div class="table-wrap">
+    <table border="0" cellpadding="6" cellspacing="0" width="100%">
+      <tr>
+        <th>Time</th>
+        <th>Actor</th>
+        <th>Event</th>
+        <th>PSI</th>
+      </tr>
+
+      {% for e in events %}
+      <tr>
+        <td>{{ e.ts|fmt_dt }}</td>
+        <td>
+          {{ e.actor }}
+          {% if e.actor_user_id %} ({{ (e.actor_user_id|string)[:10] }}){% endif %}
+        </td>
+        <td>
+          {% if e.action == "open" %}
+            Incident opened ({{ e.new_severity }})
+          {% elif e.action == "escalate" %}
+            Severity escalated to {{ e.new_severity }}
+          {% elif e.action == "downgrade" %}
+            Severity downgraded to {{ e.new_severity }}
+          {% elif e.action == "update" %}
+            Updated ({{ e.new_severity }})
+          {% elif e.action == "ack" %}
+            Acknowledged
+          {% elif e.action == "resolve" %}
+            Resolved
+          {% elif e.action == "close" %}
+            Closed
+          {% else %}
+            {{ e.action }}
+          {% endif %}
+          <span style="color:#666;">
+            ({{ e.prev_state }} → {{ e.new_state }})
+          </span>
+        </td>
+        <td>
+          {{ e.value|fmt_num }}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    </div>
     {% endif %}
   </div>
-  <div><b>Opened:</b> {{ incident.opened_at|fmt_dt }}</div>
-  <div><b>Acknowledged:</b> {{ incident.acknowledged_at|fmt_dt }}</div>
-  <div><b>Resolved:</b> {{ incident.resolved_at|fmt_dt }}</div>
-  <div><b>Closed:</b> {{ incident.closed_at|fmt_dt }}</div>
-  <div style="margin-top: 8px; color: #666; font-size: 0.9em;">
-    Note: Severity updates automatically based on PSI score and your thresholds.
+
+  <!-- Right: explanations -->
+  <div>
+    <div class="notice">
+      <div class="section-title" style="font-size:16px;">What this means</div>
+      <div class="section-sub" style="margin-top:6px;">
+        {% if severity_norm == "warn" %}
+          This may indicate a gradual shift in incoming data.<br/>
+          Monitoring will continue, and the incident will escalate if the shift worsens.
+        {% elif severity_norm == "critical" %}
+          This indicates a significant change in incoming data.<br/>
+          You may want to verify upstream data sources or recent changes to your pipeline.
+        {% else %}
+          Incoming data is within normal range. Monitoring will continue automatically.
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="notice">
+      <div class="section-title" style="font-size:16px;">What happens next</div>
+      <ul style="margin:8px 0 0 18px;">
+        <li>SentryML will continue monitoring this data stream on each scheduled run.</li>
+        <li>The incident will resolve automatically if the data returns to normal.</li>
+        <li>Alerts may continue if severity changes.</li>
+        <li>Acknowledging this incident marks it as seen, but does not stop alerts.</li>
+      </ul>
+    </div>
+
+    <div class="notice">
+      <div class="section-title" style="font-size:16px;">Incident states</div>
+      <ul style="margin:8px 0 0 18px;">
+        <li>Open — Drift detected</li>
+        <li>Acknowledged — You’ve reviewed the incident</li>
+        <li>Resolved — Data returned to normal automatically</li>
+        <li>Closed — Manually closed by a user</li>
+      </ul>
+    </div>
   </div>
-
 </div>
-
-<h3>Timeline</h3>
-
-{% if events|length == 0 %}
-  <p>No events recorded for this incident.</p>
-{% else %}
-<table border="1" cellpadding="6" cellspacing="0" width="100%">
-  <tr>
-    <th>Time</th>
-    <th>Actor</th>
-    <th>What happened</th>
-    <th>PSI</th>
-  </tr>
-
-  {% for e in events %}
-  <tr>
-    <td>{{ e.ts|fmt_dt }}</td>
-    <td>
-      {{ e.actor }}
-      {% if e.actor_user_id %} ({{ e.actor_user_id }}){% endif %}
-    </td>
-    <td>
-      {% if e.action == "open" %}
-        Incident opened ({{ e.new_severity }})
-      {% elif e.action == "escalate" %}
-        Severity escalated to {{ e.new_severity }}
-      {% elif e.action == "downgrade" %}
-        Severity downgraded to {{ e.new_severity }}
-      {% elif e.action == "update" %}
-        Updated ({{ e.new_severity }})
-      {% elif e.action == "ack" %}
-        Acknowledged
-      {% elif e.action == "resolve" %}
-        Resolved
-      {% elif e.action == "close" %}
-        Closed
-      {% else %}
-        {{ e.action }}
-      {% endif %}
-      <span style="color:#666;">
-        ({{ e.prev_state }} → {{ e.new_state }})
-      </span>
-    </td>
-    <td>
-      {{ e.value|fmt_num }}
-    </td>
-  </tr>
-  {% endfor %}
-</table>
-{% endif %}
 
 {% endblock %}

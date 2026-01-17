@@ -28,16 +28,20 @@ def _fmt_dt(value) -> str:
 
 templates.env.filters["fmt_dt"] = _fmt_dt
 
-def _fmt_num(value, places: int = 4) -> str:
+def _fmt_num(value, places: int = 4, trim: bool = False) -> str:
     if value is None or value == "":
         return "—"
     try:
         num = float(value)
     except (TypeError, ValueError):
         return str(value)
-    return f"{num:.{places}f}"
+    out = f"{num:.{places}f}"
+    if trim:
+        out = out.rstrip("0").rstrip(".")
+    return out
 
 templates.env.filters["fmt_num"] = _fmt_num
+templates.env.filters["fmt_num_trim"] = lambda v: _fmt_num(v, trim=True)
 
 def api_cookie_jar(request: Request) -> dict:
     sid = request.cookies.get("sentryml_session")
@@ -67,6 +71,7 @@ def _load_settings_data(request: Request) -> dict:
     return {
         "monitors": settings.get("monitors", []),
         "slack": settings.get("slack"),
+        "org_id": settings.get("org_id"),
         "keys": keys_resp.json(),
     }
 
@@ -104,6 +109,7 @@ def settings_page(request: Request):
             "stats": _get_stats(request),
             "monitors": data["monitors"],
             "slack": data["slack"],
+            "org_id": data.get("org_id"),
             "keys": data["keys"],
             "new_key": None,
         },
@@ -136,6 +142,7 @@ def api_keys_create(request: Request, name: str = Form(default="")):
             "stats": _get_stats(request),
             "monitors": data["monitors"],
             "slack": data["slack"],
+            "org_id": data.get("org_id"),
             "keys": data["keys"],
             "new_key": resp.json(),
         },
@@ -211,7 +218,7 @@ def settings_update_slack(
 def login(request: Request):
     return templates.TemplateResponse(
         "login.html",
-        {"request": request},
+        {"request": request, "error": None},
     )
 
 
@@ -229,14 +236,21 @@ def logout():
     return resp
 
 @app.post("/auth")
-def auth(email: str = Form(...), password: str = Form(...)):
+def auth(request: Request, email: str = Form(...), password: str = Form(...)):
     resp = requests.post(
         f"{API_BASE}/v1/auth/login",
         json={"email": email, "password": password},
         timeout=5,
     )
     if resp.status_code != 200:
-        return RedirectResponse("/", status_code=303)
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "error": "Invalid email or password.",
+            },
+            status_code=401,
+        )
 
     # grab session cookie from API response
     session_cookie = resp.cookies.get("sentryml_session")
@@ -261,11 +275,20 @@ def signup_submit(request: Request, email: str = Form(...), password: str = Form
         timeout=5,
     )
     if resp.status_code != 200:
+        msg = "Email already registered. Please sign in."
+        try:
+            detail = resp.json().get("detail")
+            if isinstance(detail, list):
+                msg = "Please enter a valid email address."
+            elif isinstance(detail, str) and detail:
+                msg = detail
+        except Exception:
+            pass
         return templates.TemplateResponse(
             "signup.html",
             {
                 "request": request,
-                "error": "Email already registered. Please sign in.",
+                "error": msg,
             },
             status_code=400,
         )
@@ -299,6 +322,7 @@ def dashboard(request: Request, onboarding: int = 0):
     )
     keys_resp.raise_for_status()
     has_keys = len(keys_resp.json()) > 0
+    has_models = len(data.get("models", [])) > 0
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -306,10 +330,12 @@ def dashboard(request: Request, onboarding: int = 0):
             "request": request,
             "onboarding": bool(onboarding),
             "has_keys": has_keys,
+            "has_models": has_models,
             "stats": _get_stats(request),
             "open_incidents": data.get("open_incidents", []),
             "latest_drift": data.get("latest_drift", []),
             "models": data.get("models", []),
+            "show_model_detected": bool(data.get("has_unmonitored")),
         },
     )
 
@@ -387,6 +413,8 @@ def incident_detail(request: Request, incident_id: str):
             "stats": _get_stats(request),
             "incident": data["incident"],
             "events": data.get("events", []),
+            "drift": data.get("drift"),
+            "monitor": data.get("monitor"),
         },
     )
 

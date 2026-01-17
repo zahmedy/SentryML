@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Model: {{ model_id }}</h2>
+<div class="section-header">
+  <h2 class="section-title">Model: {{ model_id }}</h2>
+  <div class="section-sub"><a href="/dashboard">Back to dashboard</a></div>
+</div>
 
 <h3>Incidents</h3>
 <p style="color:#666; margin-top:-6px;">
@@ -10,7 +13,8 @@
 {% if incidents|length == 0 %}
   <p>No incidents for this model.</p>
 {% else %}
-<table border="1" cellpadding="6" cellspacing="0">
+<div class="table-wrap">
+<table border="0" cellpadding="6" cellspacing="0" width="100%">
   <tr>
     <th>Incident</th>
     <th>State</th>
@@ -32,6 +36,7 @@
   </tr>
   {% endfor %}
 </table>
+</div>
 {% endif %}
 
 <h3 style="margin-top:20px;">Drift History</h3>
@@ -47,8 +52,8 @@
 {% if drift|length == 0 %}
   <p>No drift results yet.</p>
 {% else %}
-<div style="max-height:450px; overflow-y:auto; border:1px solid #ddd;">
-<table border="1" cellpadding="6" cellspacing="0" width="100%">
+<div class="table-wrap" style="max-height:450px; overflow-y:auto;">
+<table border="0" cellpadding="6" cellspacing="0" width="100%">
   <tr>
     <th>Drift ID</th>
     <th>Computed</th>
@@ -86,8 +91,8 @@
 {% if recent_predictions|length == 0 %}
   <p>No prediction events yet.</p>
 {% else %}
-<div style="max-height:450px; overflow-y:auto; border:1px solid #ddd; padding:6px;">
-  <table border="1" cellpadding="6" cellspacing="0" width="100%">
+<div class="table-wrap" style="max-height:450px; overflow-y:auto;">
+  <table border="0" cellpadding="6" cellspacing="0" width="100%">
     <tr>
       <th>Time</th>
       <th>Entity</th>

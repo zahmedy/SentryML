@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>API Keys</h2>
+<div class="section-header">
+  <h2 class="section-title">API Keys</h2>
+  <div class="section-sub"><a href="/settings">Back to settings</a></div>
+</div>
 
 {% if new_key %}
   <div style="padding:12px; border:1px solid #ccc; margin:12px 0;">
@@ -21,7 +24,8 @@
   <button type="submit">Create new key</button>
 </form>
 
-<table border="1" cellpadding="6" cellspacing="0">
+<div class="table-wrap">
+<table border="0" cellpadding="6" cellspacing="0" width="100%">
   <tr>
     <th>Prefix</th>
     <th>Name</th>
@@ -54,5 +58,6 @@
   </tr>
   {% endfor %}
 </table>
+</div>
 
 {% endblock %}

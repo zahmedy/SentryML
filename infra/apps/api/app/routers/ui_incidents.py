@@ -13,6 +13,8 @@ from apps.sentryml_core.models import (
     IncidentEventActor,
     IncidentState,
     AlertRoute,
+    DriftResult,
+    MonitorConfig,
     User,
 )
 from apps.api.app.deps_auth import get_current_user
@@ -34,6 +36,20 @@ def ui_incident_detail(
     if not inc:
         raise HTTPException(status_code=404, detail="Incident not found")
 
+    drift = None
+    if inc.drift_id:
+        drift = session.exec(
+            select(DriftResult).where(
+                (DriftResult.drift_id == inc.drift_id) & (DriftResult.org_id == user.org_id)
+            )
+        ).first()
+
+    cfg = session.exec(
+        select(MonitorConfig).where(
+            (MonitorConfig.org_id == user.org_id) & (MonitorConfig.model_id == inc.model_id)
+        )
+    ).first()
+
     events = session.exec(
         select(IncidentEvent)
         .where((IncidentEvent.incident_id == incident_id) & (IncidentEvent.org_id == user.org_id))
@@ -41,7 +57,12 @@ def ui_incident_detail(
         .limit(limit)
     ).all()
 
-    return {"incident": inc, "events": events}
+    return {
+        "incident": inc,
+        "events": events,
+        "drift": drift,
+        "monitor": cfg,
+    }
 
 
 @router.post("/incidents/{incident_id}/ack")

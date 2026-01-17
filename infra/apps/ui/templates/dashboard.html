@@ -4,25 +4,27 @@
 <h2>Dashboard</h2>
 
 {% if models|length == 0 %}
-  <div style="margin:12px 0; padding:16px; border:1px solid #d1d5db; background:#f9fafb;">
-    <h3 style="margin-top:0;">Welcome to SentryML</h3>
-    <p style="color:#374151;">
+  <div class="onboarding">
+    <div class="onboarding-header">
+      <h3 class="onboarding-title">Welcome to SentryML</h3>
+    </div>
+    <p class="onboarding-body">
       SentryML monitors production ML models for data drift and turns distribution shifts into actionable incidents.
       Get started by sending prediction events — your models will appear automatically.
     </p>
 
-    <ol style="margin:14px 0 6px 18px;">
-      <li style="margin:8px 0;">
-        <b>1. Create an API key</b><br/>
-        <span style="color:#6b7280;">API keys authenticate prediction events from your application.</span><br/>
-        <a href="/settings/api-keys" style="display:inline-block; margin-top:6px;">
+    <div class="steps">
+      <div class="step">
+        <div class="step-title">Create an API key</div>
+        <div class="step-desc">API keys authenticate prediction events from your application.</div>
+        <a href="/settings/api-keys" class="cta-link">
           {% if has_keys %}✓ API key created{% else %}Create API key{% endif %}
         </a>
-      </li>
-      <li style="margin:8px 0;">
-        <b>2. Send prediction events</b><br/>
-        <span style="color:#6b7280;">Send predictions from your application. Models appear automatically when events are received.</span>
-        <pre style="background:#fff; border:1px solid #e5e7eb; padding:10px; margin-top:8px; overflow:auto;">curl -X POST /v1/events/prediction \
+      </div>
+      <div class="step">
+        <div class="step-title">Send prediction events</div>
+        <div class="step-desc">Send predictions from your application. Models appear automatically when events are received.</div>
+        <pre class="code-block">curl -X POST /v1/events/prediction \
   -H "X-API-Key: sk_live_..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -32,26 +34,36 @@
     "score": 0.87,
     "event_time": "2026-01-16T12:00:00Z"
   }'</pre>
-        <div style="color:#6b7280; font-size:0.9em;">
+        <div class="step-desc">
           You only need to send predictions — SentryML handles aggregation and drift detection.
         </div>
-      </li>
-      <li style="margin:8px 0; color:#9ca3af;">
-        <b>3. Enable monitoring</b><br/>
-        <span>Available after your first model appears.</span>
-      </li>
-    </ol>
+      </div>
+      <div class="step">
+        <div class="step-title">Enable monitoring</div>
+        <div class="step-muted">Available after your first model appears.</div>
+      </div>
+    </div>
 
-    <div style="color:#6b7280; font-size:0.9em; margin-top:10px;">
+    <div class="trust">
       Monitoring runs on a scheduled worker. Incidents resolve automatically when data returns to normal.
     </div>
   </div>
 {% else %}
-
-{% if models|length == 0 %}
-  <p>No models yet. Send prediction events to see models appear.</p>
-{% else %}
-<table border="1" cellpadding="8" cellspacing="0">
+  {% if show_model_detected %}
+    <div class="notice">
+      <b>Model detected</b>
+      <div style="color:#374151; margin-top:6px;">
+        We’ve started tracking prediction events for your model.
+        Enable monitoring to begin drift detection.
+      </div>
+    </div>
+  {% endif %}
+  <div class="section-header">
+    <h3 class="section-title">Models</h3>
+    <div class="section-sub">You can disable monitoring at any time.</div>
+  </div>
+  <div class="table-wrap">
+  <table border="0" cellpadding="8" cellspacing="0">
   <thead>
     <tr>
       <th>Model</th>
@@ -68,7 +80,7 @@
     <tr>
       <!-- Model -->
       <td>
-        <a href="/models/{{ m.model_id }}">{{ m.model_id }}</a>
+        <a href="/models/{{ m.model_id }}" data-model-id="{{ m.model_id }}">{{ m.model_id }}</a>
       </td>
 
       <!-- Events -->
@@ -85,13 +97,13 @@
       <!-- Drift -->
       <td>
         {% if m.drift_severity == "ok" %}
-          🟢 ok
+          <span class="badge badge-ok">ok</span>
         {% elif m.drift_severity == "warn" %}
-          🟡 warn
+          <span class="badge badge-warn">warn</span>
         {% elif m.drift_severity == "critical" %}
-          🔴 critical
+          <span class="badge badge-critical">critical</span>
         {% else %}
-          —
+          <span class="badge badge-neutral">—</span>
         {% endif %}
       </td>
 
@@ -99,12 +111,17 @@
       <td>
         {% if m.open_incident_id %}
           <a href="/incidents/{{ m.open_incident_id }}">
-            {% if m.open_incident_severity == "warn" %}🟡{% elif m.open_incident_severity == "critical" %}🔴{% endif %}
-            {{ m.open_incident_status }}
-            ({{ (m.open_incident_id|string)[:10] }})
+            {% if m.open_incident_severity == "warn" %}
+              <span class="badge badge-warn">{{ m.open_incident_status }}</span>
+            {% elif m.open_incident_severity == "critical" %}
+              <span class="badge badge-critical">{{ m.open_incident_status }}</span>
+            {% else %}
+              <span class="badge badge-neutral">{{ m.open_incident_status }}</span>
+            {% endif %}
+            <span class="muted">({{ (m.open_incident_id|string)[:10] }})</span>
           </a>
         {% else %}
-          —
+          <span class="badge badge-neutral">—</span>
         {% endif %}
       </td>
 
@@ -120,7 +137,7 @@
             <button type="submit">Disable</button>
           </form>
         {% else %}
-          Disabled
+          <div>Disabled</div>
           <form
             action="/models/{{ m.model_id }}/monitoring/enable"
             method="post"
@@ -128,12 +145,39 @@
           >
             <button type="submit">Enable</button>
           </form>
+          <div class="muted" style="margin-top:4px;">
+            Monitoring runs on the next scheduled worker cycle.
+          </div>
         {% endif %}
       </td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
+  </div>
 {% endif %}
 
+<script>
+  (function () {
+    const key = "sentryml_seen_models";
+    const seen = new Set(JSON.parse(sessionStorage.getItem(key) || "[]"));
+    const links = document.querySelectorAll("a[data-model-id]");
+    links.forEach((link) => {
+      const id = link.getAttribute("data-model-id");
+      if (id && !seen.has(id)) {
+        const badge = document.createElement("span");
+        badge.textContent = "New";
+        badge.style.marginLeft = "6px";
+        badge.style.fontSize = "0.7em";
+        badge.style.background = "#111827";
+        badge.style.color = "#fff";
+        badge.style.padding = "2px 6px";
+        badge.style.borderRadius = "999px";
+        link.appendChild(badge);
+      }
+      if (id) seen.add(id);
+    });
+    sessionStorage.setItem(key, JSON.stringify(Array.from(seen)));
+  })();
+</script>
 {% endblock %}

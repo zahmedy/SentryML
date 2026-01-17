@@ -60,6 +60,8 @@ def login(payload: LoginRequest, response: Response, session: Session = Depends(
 
 @router.post("/signup")
 def signup(payload: SignupRequest, response: Response, session: Session = Depends(get_session)):
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=400, detail="Please use 8 characters password")
     existing = session.exec(select(User).where(User.email == payload.email)).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
