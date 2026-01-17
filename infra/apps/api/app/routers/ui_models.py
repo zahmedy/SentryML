@@ -17,12 +17,13 @@ def ui_model_detail(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
     limit: int = 50,
+    drift_limit: int = 50,
 ):
     drift = session.exec(
         select(DriftResult)
         .where((DriftResult.org_id == user.org_id) & (DriftResult.model_id == model_id))
         .order_by(DriftResult.computed_at.desc())
-        .limit(limit)
+        .limit(drift_limit)
     ).all()
 
     incidents = session.exec(

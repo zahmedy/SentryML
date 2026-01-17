@@ -292,12 +292,20 @@ def dashboard(request: Request, onboarding: int = 0):
     resp = requests.get(f"{API_BASE}/v1/ui/dashboard", cookies=api_cookie_jar(request), timeout=5)
     resp.raise_for_status()
     data = resp.json()
+    keys_resp = requests.get(
+        f"{API_BASE}/v1/api-keys",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    keys_resp.raise_for_status()
+    has_keys = len(keys_resp.json()) > 0
 
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
             "onboarding": bool(onboarding),
+            "has_keys": has_keys,
             "stats": _get_stats(request),
             "open_incidents": data.get("open_incidents", []),
             "latest_drift": data.get("latest_drift", []),
@@ -306,13 +314,18 @@ def dashboard(request: Request, onboarding: int = 0):
     )
 
 @app.get("/models/{model_id}", response_class=HTMLResponse)
-def model_detail(request: Request, model_id: str, pred_limit: int = 200):
+def model_detail(
+    request: Request,
+    model_id: str,
+    pred_limit: int = 200,
+    drift_limit: int = 50,
+):
     if not request.cookies.get("sentryml_session"):
         return RedirectResponse("/", status_code=302)
 
     resp = requests.get(
         f"{API_BASE}/v1/ui/models/{model_id}",
-        params={"pred_limit": pred_limit},
+        params={"pred_limit": pred_limit, "drift_limit": drift_limit},
         cookies=api_cookie_jar(request),
         timeout=5,
     )
@@ -328,6 +341,7 @@ def model_detail(request: Request, model_id: str, pred_limit: int = 200):
             "drift": data["drift"],
             "incidents": data["incidents"],
             "pred_limit": pred_limit,
+            "drift_limit": drift_limit,
             "recent_predictions": data.get("recent_predictions", []),
         },
     )

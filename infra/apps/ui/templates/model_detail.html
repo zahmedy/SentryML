@@ -35,6 +35,15 @@
 {% endif %}
 
 <h3 style="margin-top:20px;">Drift History</h3>
+<form method="get" action="/models/{{ model_id }}" style="margin:10px 0;">
+  <label>Show last</label>
+  <select name="drift_limit" onchange="this.form.submit()">
+    <option value="50"  {% if drift_limit == 50 %}selected{% endif %}>50</option>
+    <option value="200" {% if drift_limit == 200 %}selected{% endif %}>200</option>
+    <option value="1000" {% if drift_limit == 1000 %}selected{% endif %}>1000</option>
+  </select>
+  <input type="hidden" name="pred_limit" value="{{ pred_limit }}" />
+</form>
 {% if drift|length == 0 %}
   <p>No drift results yet.</p>
 {% else %}

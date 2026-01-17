@@ -70,23 +70,6 @@
       </form>
     </div>
   </div>
-  {% if stats %}
-  <div class="meta">
-    <div>
-      Worker: <b>{{ stats.worker_status }}</b>
-      {% if stats.last_worker_run %} · {{ stats.last_worker_run|fmt_dt }}{% endif %}
-    </div>
-    <div>
-      Models monitored: <b>{{ stats.monitored_models }}</b>
-    </div>
-    <div>
-      Open incidents: <b>{{ stats.open_incidents }}</b>
-    </div>
-    <div>
-      Last alert: {% if stats.last_alert_at %}{{ stats.last_alert_at|fmt_dt }}{% else %}—{% endif %}
-    </div>
-  </div>
-  {% endif %}
   <div class="card">
     {% block content %}{% endblock %}
   </div>

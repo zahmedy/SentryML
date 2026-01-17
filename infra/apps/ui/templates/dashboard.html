@@ -2,15 +2,51 @@
 {% block content %}
 
 <h2>Dashboard</h2>
-<p style="color:#666; margin-top:-6px;">
-  Monitoring runs on a scheduled worker. Changes apply on the next run.
-</p>
-{% if onboarding %}
-  <div style="margin:12px 0; padding:12px; border:1px solid #d1d5db; background:#f9fafb;">
-    <b>Welcome to SentryML.</b>
-    Create an API key in Settings, then start sending prediction events to see models appear here.
+
+{% if models|length == 0 %}
+  <div style="margin:12px 0; padding:16px; border:1px solid #d1d5db; background:#f9fafb;">
+    <h3 style="margin-top:0;">Welcome to SentryML</h3>
+    <p style="color:#374151;">
+      SentryML monitors production ML models for data drift and turns distribution shifts into actionable incidents.
+      Get started by sending prediction events — your models will appear automatically.
+    </p>
+
+    <ol style="margin:14px 0 6px 18px;">
+      <li style="margin:8px 0;">
+        <b>1. Create an API key</b><br/>
+        <span style="color:#6b7280;">API keys authenticate prediction events from your application.</span><br/>
+        <a href="/settings/api-keys" style="display:inline-block; margin-top:6px;">
+          {% if has_keys %}✓ API key created{% else %}Create API key{% endif %}
+        </a>
+      </li>
+      <li style="margin:8px 0;">
+        <b>2. Send prediction events</b><br/>
+        <span style="color:#6b7280;">Send predictions from your application. Models appear automatically when events are received.</span>
+        <pre style="background:#fff; border:1px solid #e5e7eb; padding:10px; margin-top:8px; overflow:auto;">curl -X POST /v1/events/prediction \
+  -H "X-API-Key: sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_id": "fraud_v1",
+    "entity_id": "user_123",
+    "prediction": "approve",
+    "score": 0.87,
+    "event_time": "2026-01-16T12:00:00Z"
+  }'</pre>
+        <div style="color:#6b7280; font-size:0.9em;">
+          You only need to send predictions — SentryML handles aggregation and drift detection.
+        </div>
+      </li>
+      <li style="margin:8px 0; color:#9ca3af;">
+        <b>3. Enable monitoring</b><br/>
+        <span>Available after your first model appears.</span>
+      </li>
+    </ol>
+
+    <div style="color:#6b7280; font-size:0.9em; margin-top:10px;">
+      Monitoring runs on a scheduled worker. Incidents resolve automatically when data returns to normal.
+    </div>
   </div>
-{% endif %}
+{% else %}
 
 {% if models|length == 0 %}
   <p>No models yet. Send prediction events to see models appear.</p>
