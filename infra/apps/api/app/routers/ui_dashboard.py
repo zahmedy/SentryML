@@ -75,6 +75,8 @@ def ui_dashboard(
         cfg = config_by_model.get(m.model_id)
         warn = cfg.warn_threshold if cfg else 0.1
         critical = cfg.critical_threshold if cfg else 0.2
+        if critical < warn:
+            warn, critical = critical, warn
 
         out.append({
             "model_id": m.model_id,

@@ -4,15 +4,18 @@
 <div style="display:flex; align-items:center; justify-content:space-between;">
   <h2 style="margin:0;">Incident</h2>
   <div>
-    {% if incident.state == "open" %}
+    {% set state_norm = incident.state|string|lower %}
+    {% if incident.closed_at %}
+      <!-- closed: no actions -->
+    {% elif state_norm == "open" %}
       <form action="/incidents/{{ incident.incident_id }}/ack" method="post" style="display:inline;">
         <button type="submit">Acknowledge</button>
       </form>
-    {% elif incident.state == "ack" %}
+    {% elif state_norm == "ack" %}
       <form action="/incidents/{{ incident.incident_id }}/resolve" method="post" style="display:inline;">
         <button type="submit">Resolve</button>
       </form>
-    {% elif incident.state == "resolved" %}
+    {% elif state_norm == "resolved" %}
       <form action="/incidents/{{ incident.incident_id }}/close" method="post" style="display:inline;">
         <button type="submit">Close</button>
       </form>
@@ -30,6 +33,15 @@
   </div>
   <div><b>State:</b> {{ incident.state }}</div>
   <div><b>Value:</b> {{ incident.value|fmt_num }}</div>
+  <div><b>Drift:</b>
+    {% if incident.drift_id %}
+      <a href="/models/{{ incident.model_id }}#drift-{{ incident.drift_id }}">
+        {{ (incident.drift_id|string)[:10] }}
+      </a>
+    {% else %}
+      —
+    {% endif %}
+  </div>
   <div><b>Opened:</b> {{ incident.opened_at|fmt_dt }}</div>
   <div><b>Acknowledged:</b> {{ incident.acknowledged_at|fmt_dt }}</div>
   <div><b>Resolved:</b> {{ incident.resolved_at|fmt_dt }}</div>

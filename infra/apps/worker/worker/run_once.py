@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
@@ -14,6 +15,8 @@ from apps.sentryml_core.models import (
     AlertRoute,
     IncidentSeverity,
     IncidentState,
+    IncidentEvent,
+    IncidentEventActor,
 )
 from apps.sentryml_core.drift import psi_quantile
 from apps.worker.worker.slack import send_slack
@@ -74,6 +77,7 @@ def format_slack_message(
     baseline_end: datetime,
     current_start: datetime,
     current_end: datetime,
+    incident_id: str | None = None,
 ) -> str:
     emoji = {
         "open": "🚨",
@@ -82,12 +86,18 @@ def format_slack_message(
         "resolve": "✅",
     }.get(action, "ℹ️")
 
+    ui_base = os.getenv("UI_BASE_URL", "http://localhost:9000")
+    incident_line = (
+        f"Incident: {ui_base}/incidents/{incident_id}\n" if incident_id else ""
+    )
     return (
         f"{emoji} SentryML incident *{action.upper()}*\n"
         f"Model: `{model_id}`\n"
         f"Severity: *{severity.upper()}* (PSI={psi_score:.4f})\n\n"
+        f"{incident_line}"
         f"*Baseline*: {baseline_start} → {baseline_end} (n={baseline_n})\n"
-        f"*Current*:  {current_start} → {current_end} (n={current_n})"
+        f"*Current*:  {current_start} → {current_end} (n={current_n})\n"
+        "Ack in UI to mark as seen."
     )
 
 
@@ -210,18 +220,75 @@ def main() -> int:
                     state=IncidentState.OPEN,
                 )
                 session.add(incident)
+                session.flush()
+                session.add(
+                    IncidentEvent(
+                        incident_id=incident.incident_id,
+                        org_id=m.org_id,
+                        model_id=m.model_id,
+                        metric="psi_score",
+                        ts=now,
+                        action="open",
+                        prev_state="none",
+                        new_state=incident.state.value,
+                        prev_severity=IncidentSeverity.NONE.value,
+                        new_severity=incident.severity.value,
+                        value=psi_score,
+                        actor=IncidentEventActor.WORKER.value,
+                        actor_user_id=None,
+                    )
+                )
 
             elif action in {"escalate", "downgrade", "update"}:
+                prev_state = open_incident.state.value
+                prev_sev = open_incident.severity.value
                 open_incident.severity = next_severity
                 open_incident.value = psi_score
                 open_incident.drift_id = drift.drift_id
                 session.add(open_incident)
+                session.add(
+                    IncidentEvent(
+                        incident_id=open_incident.incident_id,
+                        org_id=m.org_id,
+                        model_id=m.model_id,
+                        metric="psi_score",
+                        ts=now,
+                        action=action,
+                        prev_state=prev_state,
+                        new_state=open_incident.state.value,
+                        prev_severity=prev_sev,
+                        new_severity=open_incident.severity.value,
+                        value=psi_score,
+                        actor=IncidentEventActor.WORKER.value,
+                        actor_user_id=None,
+                    )
+                )
 
             elif action == "resolve":
-                open_incident.state = IncidentState.RESOLVED
+                prev_state = open_incident.state.value
+                prev_sev = open_incident.severity.value
+                # Auto-resolve and close when PSI returns to normal.
+                open_incident.state = IncidentState.CLOSED
                 open_incident.resolved_at = now
                 open_incident.closed_at = now
                 session.add(open_incident)
+                session.add(
+                    IncidentEvent(
+                        incident_id=open_incident.incident_id,
+                        org_id=m.org_id,
+                        model_id=m.model_id,
+                        metric="psi_score",
+                        ts=now,
+                        action="resolve",
+                        prev_state=prev_state,
+                        new_state=open_incident.state.value,
+                        prev_severity=prev_sev,
+                        new_severity=open_incident.severity.value,
+                        value=psi_score,
+                        actor=IncidentEventActor.WORKER.value,
+                        actor_user_id=None,
+                    )
+                )
 
             # -------------------------
             # Slack notification
@@ -229,6 +296,11 @@ def main() -> int:
             if action in {"open", "escalate", "downgrade", "resolve"}:
                 route = route_map.get(m.org_id)
                 if route:
+                    inc_id = None
+                    if action == "open":
+                        inc_id = str(incident.incident_id)
+                    elif open_incident is not None:
+                        inc_id = str(open_incident.incident_id)
                     send_slack(
                         route.slack_webhook_url,
                         format_slack_message(
@@ -242,6 +314,7 @@ def main() -> int:
                             baseline_end=baseline_end,
                             current_start=current_start,
                             current_end=current_end,
+                            incident_id=inc_id,
                         ),
                     )
 

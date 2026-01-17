@@ -2,6 +2,15 @@
 {% block content %}
 
 <h2>Dashboard</h2>
+<p style="color:#666; margin-top:-6px;">
+  Monitoring runs on a scheduled worker. Changes apply on the next run.
+</p>
+{% if onboarding %}
+  <div style="margin:12px 0; padding:12px; border:1px solid #d1d5db; background:#f9fafb;">
+    <b>Welcome to SentryML.</b>
+    Create an API key in Settings, then start sending prediction events to see models appear here.
+  </div>
+{% endif %}
 
 {% if models|length == 0 %}
   <p>No models yet. Send prediction events to see models appear.</p>

@@ -16,6 +16,7 @@ from apps.api.app.routers.api_keys import router as api_keys_router
 from apps.api.app.routers.ui_dashboard import router as ui_dashboard_router
 from apps.api.app.routers.ui_models import router as ui_models_router
 from apps.api.app.routers.ui_incidents import router as ui_incidents_router
+from apps.api.app.routers.ui_settings import router as ui_settings_router
 
 
 
@@ -36,6 +37,7 @@ app.include_router(api_keys_router)
 app.include_router(ui_dashboard_router)
 app.include_router(ui_models_router)
 app.include_router(ui_incidents_router)
+app.include_router(ui_settings_router)
 
 
 @app.post("/v1/events/prediction", response_model=PredictionEvent)
@@ -229,4 +231,3 @@ def upsert_slack_route(
     session.commit()
     session.refresh(route)
     return route
-

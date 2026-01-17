@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from uuid import uuid4
 
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -7,12 +7,18 @@ from pydantic import BaseModel, EmailStr
 from sqlmodel import Session, select
 
 from apps.sentryml_core.db import get_session
-from apps.sentryml_core.models import User, SessionToken  # your SQLModel tables
+from apps.sentryml_core.models import Org, User, SessionToken  # your SQLModel tables
+from apps.api.app.security import hash_password
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class SignupRequest(BaseModel):
     email: EmailStr
     password: str
 
@@ -46,6 +52,47 @@ def login(payload: LoginRequest, response: Response, session: Session = Depends(
         httponly=True,
         samesite="lax",
         secure=False,  # set True in prod behind HTTPS
+        max_age=30 * 24 * 60 * 60,
+    )
+
+    return {"ok": True}
+
+
+@router.post("/signup")
+def signup(payload: SignupRequest, response: Response, session: Session = Depends(get_session)):
+    existing = session.exec(select(User).where(User.email == payload.email)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    org = Org(
+        org_id=uuid4(),
+        name=payload.email.split("@")[0] or "My Org",
+    )
+    user = User(
+        user_id=uuid4(),
+        org_id=org.org_id,
+        email=payload.email,
+        password_hash=hash_password(payload.password),
+        created_at=datetime.utcnow(),
+    )
+    session.add(org)
+    session.add(user)
+
+    token = SessionToken(
+        user_id=user.user_id,
+        created_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(days=30),
+        revoked_at=None,
+    )
+    session.add(token)
+    session.commit()
+
+    response.set_cookie(
+        key="sentryml_session",
+        value=str(token.session_id),
+        httponly=True,
+        samesite="lax",
+        secure=False,
         max_age=30 * 24 * 60 * 60,
     )
 

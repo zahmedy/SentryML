@@ -4,11 +4,15 @@
 <h2>Model: {{ model_id }}</h2>
 
 <h3>Incidents</h3>
+<p style="color:#666; margin-top:-6px;">
+  Resolved automatically when PSI returns to normal.
+</p>
 {% if incidents|length == 0 %}
   <p>No incidents for this model.</p>
 {% else %}
 <table border="1" cellpadding="6" cellspacing="0">
   <tr>
+    <th>Incident</th>
     <th>State</th>
     <th>PSI</th>
     <th>Opened</th>
@@ -16,6 +20,11 @@
   </tr>
   {% for i in incidents %}
   <tr>
+    <td>
+      <a href="/incidents/{{ i.incident_id }}">
+        {{ i.state }} ({{ (i.incident_id|string)[:10] }})
+      </a>
+    </td>
     <td>{{ i.state }}</td>
     <td>{{ i.value|fmt_num }}</td>
     <td>{{ i.opened_at|fmt_dt }}</td>
@@ -29,34 +38,32 @@
 {% if drift|length == 0 %}
   <p>No drift results yet.</p>
 {% else %}
-<table border="1" cellpadding="6" cellspacing="0">
+<div style="max-height:450px; overflow-y:auto; border:1px solid #ddd;">
+<table border="1" cellpadding="6" cellspacing="0" width="100%">
   <tr>
+    <th>Drift ID</th>
     <th>Computed</th>
     <th>PSI</th>
     <th>Baseline</th>
     <th>Current</th>
   </tr>
   {% for d in drift %}
-  <tr>
+  <tr id="drift-{{ d.drift_id }}">
+    <td>{{ (d.drift_id|string)[:10] }}</td>
     <td>{{ d.computed_at|fmt_dt }}</td>
     <td>{{ d.psi_score|fmt_num }}</td>
-    <td>{{ d.baseline_start }} → {{ d.baseline_end }} (n={{ d.baseline_n }})</td>
-    <td>{{ d.current_start }} → {{ d.current_end }} (n={{ d.current_n }})</td>
+    <td>{{ d.baseline_start|fmt_dt }} → {{ d.baseline_end|fmt_dt }} (n={{ d.baseline_n }})</td>
+    <td>{{ d.current_start|fmt_dt }} → {{ d.current_end|fmt_dt }} (n={{ d.current_n }})</td>
   </tr>
   {% endfor %}
 </table>
+</div>
 {% endif %}
 
-<form method="get" action="/models/{{ model_id }}" style="margin:10px 0;">
-  <label>Recent predictions</label>
-  <select name="pred_limit" onchange="this.form.submit()">
-    <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
-    <option value="200" {% if pred_limit == 200 %}selected{% endif %}>200</option>
-    <option value="1000" {% if pred_limit == 1000 %}selected{% endif %}>1000</option>
-  </select>
-</form>
-
 <h3 style="margin-top:20px;">Recent Predictions</h3>
+<p style="color:#666; margin-top:-6px;">
+  Showing recent events only.
+</p>
 
 <form method="get" action="/models/{{ model_id }}" style="margin:10px 0;">
   <label>Show last</label>
@@ -70,7 +77,7 @@
 {% if recent_predictions|length == 0 %}
   <p>No prediction events yet.</p>
 {% else %}
-<div style="max-height:700px; overflow-y:auto; border:1px solid #ddd; padding:6px;">
+<div style="max-height:450px; overflow-y:auto; border:1px solid #ddd; padding:6px;">
   <table border="1" cellpadding="6" cellspacing="0" width="100%">
     <tr>
       <th>Time</th>

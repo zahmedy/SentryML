@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -133,9 +134,18 @@ def ui_incident_resolve(
         )
     ).first()
     if route:
+        ui_base = os.getenv("UI_BASE_URL", "http://localhost:9000")
+        psi_val = f"{inc.value:.4f}" if inc.value is not None else "—"
         send_slack(
             route.slack_webhook_url,
-            f"✅ SentryML incident RESOLVED\nModel: `{inc.model_id}`\nSeverity: {inc.severity}",
+            (
+                "✅ SentryML incident RESOLVED\n"
+                f"Model: `{inc.model_id}`\n"
+                f"Severity: {inc.severity}\n"
+                f"PSI: {psi_val}\n"
+                f"Incident: {ui_base}/incidents/{inc.incident_id}\n"
+                "Ack in UI to mark as seen."
+            ),
         )
 
     return {"ok": True}
@@ -187,9 +197,18 @@ def ui_incident_close(
         )
     ).first()
     if route:
+        ui_base = os.getenv("UI_BASE_URL", "http://localhost:9000")
+        psi_val = f"{inc.value:.4f}" if inc.value is not None else "—"
         send_slack(
             route.slack_webhook_url,
-            f"✅ SentryML incident CLOSED\nModel: `{inc.model_id}`\nSeverity: {inc.severity}",
+            (
+                "✅ SentryML incident CLOSED\n"
+                f"Model: `{inc.model_id}`\n"
+                f"Severity: {inc.severity}\n"
+                f"PSI: {psi_val}\n"
+                f"Incident: {ui_base}/incidents/{inc.incident_id}\n"
+                "Ack in UI to mark as seen."
+            ),
         )
 
     return {"ok": True}

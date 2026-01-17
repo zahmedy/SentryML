@@ -3,22 +3,93 @@
 <head>
   <title>SentryML</title>
   <style>
-    body { font-family: sans-serif; margin: 40px; }
-    .header { display: flex; align-items: center; justify-content: space-between; }
+    body {
+      font-family: "Space Grotesk", "Avenir Next", "Helvetica Neue", sans-serif;
+      margin: 0;
+      background: #f6f5f2;
+      color: #1f2937;
+    }
+    .page {
+      padding: 32px 40px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-link { text-decoration: none; color: #2563eb; font-weight: 600; }
+    .meta {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      color: #6b7280;
+      font-size: 0.9em;
+      margin: 8px 0 16px 0;
+    }
     table { border-collapse: collapse; width: 100%; }
-    th, td { padding: 8px; border-bottom: 1px solid #ddd; }
-    th { text-align: left; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; }
+    th { text-align: left; background: #fafafa; position: sticky; top: 0; z-index: 1; }
+    input, select, button {
+      font-family: inherit;
+      font-size: 14px;
+    }
+    input, select {
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+    button {
+      background: #111827;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    a { color: #2563eb; }
   </style>
 </head>
 <body>
+  <div class="page">
   <div class="header">
     <h1>
       <a href="/dashboard" style="text-decoration:none; color:inherit;">SentryML</a>
     </h1>
-    <form action="/logout" method="post" style="display:inline;">
-      <button type="submit">Logout</button>
-    </form>
+    <div class="header-actions">
+      <a href="/settings" class="header-link">Settings</a>
+      <form action="/logout" method="post" style="display:inline;">
+        <button type="submit">Logout</button>
+      </form>
+    </div>
   </div>
-  {% block content %}{% endblock %}
+  {% if stats %}
+  <div class="meta">
+    <div>
+      Worker: <b>{{ stats.worker_status }}</b>
+      {% if stats.last_worker_run %} · {{ stats.last_worker_run|fmt_dt }}{% endif %}
+    </div>
+    <div>
+      Models monitored: <b>{{ stats.monitored_models }}</b>
+    </div>
+    <div>
+      Open incidents: <b>{{ stats.open_incidents }}</b>
+    </div>
+    <div>
+      Last alert: {% if stats.last_alert_at %}{{ stats.last_alert_at|fmt_dt }}{% else %}—{% endif %}
+    </div>
+  </div>
+  {% endif %}
+  <div class="card">
+    {% block content %}{% endblock %}
+  </div>
+  </div>
 </body>
 </html>

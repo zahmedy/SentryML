@@ -48,23 +48,71 @@ def require_session(request: Request):
         return RedirectResponse("/", status_code=302)
     return None
 
-@app.get("/settings/api-keys", response_class=HTMLResponse)
-def api_keys_page(request: Request):
-    r = require_session(request)
-    if r:
-        return r
-
+def _load_settings_data(request: Request) -> dict:
     resp = requests.get(
-        f"{API_BASE}/v1/api-keys",
+        f"{API_BASE}/v1/ui/settings",
         cookies=api_cookie_jar(request),
         timeout=5,
     )
     resp.raise_for_status()
+    settings = resp.json()
 
-    return templates.TemplateResponse(
-        "api_keys.html",
-        {"request": request, "keys": resp.json(), "new_key": None},
+    keys_resp = requests.get(
+        f"{API_BASE}/v1/api-keys",
+        cookies=api_cookie_jar(request),
+        timeout=5,
     )
+    keys_resp.raise_for_status()
+
+    return {
+        "monitors": settings.get("monitors", []),
+        "slack": settings.get("slack"),
+        "keys": keys_resp.json(),
+    }
+
+
+def _get_stats(request: Request) -> dict:
+    try:
+        resp = requests.get(
+            f"{API_BASE}/v1/ui/stats",
+            cookies=api_cookie_jar(request),
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return {
+            "worker_status": "unknown",
+            "last_worker_run": None,
+            "monitored_models": 0,
+            "open_incidents": 0,
+            "last_alert_at": None,
+        }
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request):
+    r = require_session(request)
+    if r:
+        return r
+
+    data = _load_settings_data(request)
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "stats": _get_stats(request),
+            "monitors": data["monitors"],
+            "slack": data["slack"],
+            "keys": data["keys"],
+            "new_key": None,
+        },
+    )
+
+
+@app.get("/settings/api-keys", response_class=HTMLResponse)
+def api_keys_page(request: Request):
+    return settings_page(request)
 
 @app.post("/settings/api-keys/create")
 def api_keys_create(request: Request, name: str = Form(default="")):
@@ -80,17 +128,17 @@ def api_keys_create(request: Request, name: str = Form(default="")):
     )
     resp.raise_for_status()
 
-    # Re-fetch list so page renders current state
-    keys_resp = requests.get(
-        f"{API_BASE}/v1/api-keys",
-        cookies=api_cookie_jar(request),
-        timeout=5,
-    )
-    keys_resp.raise_for_status()
-
+    data = _load_settings_data(request)
     return templates.TemplateResponse(
-        "api_keys.html",
-        {"request": request, "keys": keys_resp.json(), "new_key": resp.json()},
+        "settings.html",
+        {
+            "request": request,
+            "stats": _get_stats(request),
+            "monitors": data["monitors"],
+            "slack": data["slack"],
+            "keys": data["keys"],
+            "new_key": resp.json(),
+        },
     )
 
 @app.post("/settings/api-keys/{key_id}/revoke")
@@ -106,13 +154,72 @@ def api_keys_revoke(request: Request, key_id: str):
     )
     resp.raise_for_status()
 
-    return RedirectResponse("/settings/api-keys", status_code=303)
+    return RedirectResponse("/settings", status_code=303)
+
+
+@app.post("/settings/monitor/{model_id}")
+def settings_update_monitor(
+    request: Request,
+    model_id: str,
+    is_enabled: str | None = Form(default=None),
+    baseline_days: int = Form(...),
+    current_days: int = Form(...),
+    num_bins: int = Form(...),
+    min_samples: int = Form(...),
+    warn_threshold: float = Form(...),
+    critical_threshold: float = Form(...),
+):
+    payload = {
+        "is_enabled": bool(is_enabled),
+        "baseline_days": baseline_days,
+        "current_days": current_days,
+        "num_bins": num_bins,
+        "min_samples": min_samples,
+        "warn_threshold": warn_threshold,
+        "critical_threshold": critical_threshold,
+    }
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/models/{model_id}/monitor",
+        json=payload,
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse("/settings", status_code=303)
+
+
+@app.post("/settings/slack")
+def settings_update_slack(
+    request: Request,
+    slack_webhook_url: str = Form(default=""),
+    is_enabled: str | None = Form(default=None),
+):
+    payload = {
+        "slack_webhook_url": slack_webhook_url,
+        "is_enabled": bool(is_enabled),
+    }
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/settings/slack",
+        json=payload,
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse("/settings", status_code=303)
 
 @app.get("/", response_class=HTMLResponse)
 def login(request: Request):
     return templates.TemplateResponse(
         "login.html",
         {"request": request},
+    )
+
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup(request: Request):
+    return templates.TemplateResponse(
+        "signup.html",
+        {"request": request, "error": None},
     )
 
 @app.post("/logout")
@@ -145,8 +252,39 @@ def auth(email: str = Form(...), password: str = Form(...)):
     )
     return out
 
+
+@app.post("/signup")
+def signup_submit(request: Request, email: str = Form(...), password: str = Form(...)):
+    resp = requests.post(
+        f"{API_BASE}/v1/auth/signup",
+        json={"email": email, "password": password},
+        timeout=5,
+    )
+    if resp.status_code != 200:
+        return templates.TemplateResponse(
+            "signup.html",
+            {
+                "request": request,
+                "error": "Email already registered. Please sign in.",
+            },
+            status_code=400,
+        )
+
+    session_cookie = resp.cookies.get("sentryml_session")
+    if not session_cookie:
+        return RedirectResponse("/signup", status_code=303)
+
+    out = RedirectResponse("/dashboard?onboarding=1", status_code=303)
+    out.set_cookie(
+        key="sentryml_session",
+        value=session_cookie,
+        httponly=True,
+        samesite="lax",
+    )
+    return out
+
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
+def dashboard(request: Request, onboarding: int = 0):
     # Redirect to login if not authenticated
     if not request.cookies.get("sentryml_session"):
         return RedirectResponse("/", status_code=302)
@@ -159,6 +297,8 @@ def dashboard(request: Request):
         "dashboard.html",
         {
             "request": request,
+            "onboarding": bool(onboarding),
+            "stats": _get_stats(request),
             "open_incidents": data.get("open_incidents", []),
             "latest_drift": data.get("latest_drift", []),
             "models": data.get("models", []),
@@ -183,6 +323,7 @@ def model_detail(request: Request, model_id: str, pred_limit: int = 200):
         "model_detail.html",
         {
             "request": request,
+            "stats": _get_stats(request),
             "model_id": data["model_id"],
             "drift": data["drift"],
             "incidents": data["incidents"],
@@ -229,6 +370,7 @@ def incident_detail(request: Request, incident_id: str):
         "incident_detail.html",
         {
             "request": request,
+            "stats": _get_stats(request),
             "incident": data["incident"],
             "events": data.get("events", []),
         },

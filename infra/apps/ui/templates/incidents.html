@@ -42,7 +42,8 @@
   <h1>Incidents</h1>
   <p><a href="/">← Back to dashboard</a></p>
 
-  <table>
+  <div style="max-height:450px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:8px;">
+  <table width="100%">
     <thead>
       <tr>
         <th>ID</th>
@@ -72,6 +73,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
 </body>
 </html>
