@@ -79,25 +79,30 @@ def format_slack_message(
     current_end: datetime,
     incident_id: str | None = None,
 ) -> str:
-    emoji = {
-        "open": "🚨",
-        "escalate": "🔥",
-        "downgrade": "🟡",
-        "resolve": "✅",
-    }.get(action, "ℹ️")
+    severity_norm = (severity or "").lower()
+    emoji = "🚨" if severity_norm == "critical" else "⚠️"
+    title = f"{emoji} Data drift detected ({severity_norm})"
+
+    sev_line = "The distribution shift exceeds the warning threshold."
+    if severity_norm == "critical":
+        sev_line = "The distribution shift exceeds the critical threshold and may impact model behavior."
 
     ui_base = os.getenv("UI_BASE_URL", "http://localhost:9000")
-    incident_line = (
-        f"Incident: {ui_base}/incidents/{incident_id}\n" if incident_id else ""
-    )
+    incident_link = f"{ui_base}/incidents/{incident_id}" if incident_id else ""
+
+    current_range = f"{current_start:%b %d} → {current_end:%b %d}"
+
     return (
-        f"{emoji} SentryML incident *{action.upper()}*\n"
-        f"Model: `{model_id}`\n"
-        f"Severity: *{severity.upper()}* (PSI={psi_score:.4f})\n\n"
-        f"{incident_line}"
-        f"*Baseline*: {baseline_start} → {baseline_end} (n={baseline_n})\n"
-        f"*Current*:  {current_start} → {current_end} (n={current_n})\n"
-        "Ack in UI to mark as seen."
+        f"{title}\n\n"
+        f"Incoming prediction data for {model_id} has drifted from its baseline distribution.\n"
+        f"{sev_line}\n\n"
+        f"• Model: {model_id}\n"
+        f"• Severity: {severity_norm}\n"
+        f"• PSI: {psi_score:.2f}\n"
+        f"• Current window: {current_range}\n\n"
+        "SentryML will continue monitoring this model on the next scheduled run.\n"
+        "The incident will resolve automatically if the data returns to normal.\n\n"
+        f"🔍 View incident details\n{incident_link}"
     )
 
 
