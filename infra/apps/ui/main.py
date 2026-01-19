@@ -5,10 +5,12 @@ import requests
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI(title="SentryML UI")
 templates = Jinja2Templates(directory="apps/ui/templates")
+app.mount("/static", StaticFiles(directory="apps/ui/static"), name="static")
 
 API_BASE = os.getenv("API_BASE_URL", "http://api:8000")
 
