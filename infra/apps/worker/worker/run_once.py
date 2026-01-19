@@ -80,19 +80,22 @@ def format_slack_message(
     incident_id: str | None = None,
 ) -> str:
     severity_norm = (severity or "").lower()
-    emoji = "🚨" if severity_norm == "critical" else "⚠️"
-    title = f"{emoji} Data drift detected ({severity_norm})"
-
-    sev_line = "The distribution shift exceeds the warning threshold."
-    if severity_norm == "critical":
-        sev_line = "The distribution shift exceeds the critical threshold and may impact model behavior."
+    if action == "resolve":
+        title = "✅ Incident resolved"
+        sev_line = "Incoming prediction data has returned toward its baseline distribution."
+    else:
+        emoji = "🚨" if severity_norm == "critical" else "⚠️"
+        title = f"{emoji} Data drift detected ({severity_norm})"
+        sev_line = "The distribution shift exceeds the warning threshold."
+        if severity_norm == "critical":
+            sev_line = "The distribution shift exceeds the critical threshold and may impact model behavior."
 
     ui_base = os.getenv("UI_BASE_URL", "http://localhost:9000")
     incident_link = f"{ui_base}/incidents/{incident_id}" if incident_id else ""
 
     current_range = f"{current_start:%b %d} → {current_end:%b %d}"
 
-    return (
+    body = (
         f"{title}\n\n"
         f"Incoming prediction data for {model_id} has drifted from its baseline distribution.\n"
         f"{sev_line}\n\n"
@@ -104,6 +107,18 @@ def format_slack_message(
         "The incident will resolve automatically if the data returns to normal.\n\n"
         f"🔍 View incident details\n{incident_link}"
     )
+    if action == "resolve":
+        body = (
+            f"{title}\n\n"
+            f"{sev_line}\n\n"
+            f"• Model: {model_id}\n"
+            f"• Severity: {severity_norm}\n"
+            f"• PSI: {psi_score:.2f}\n"
+            f"• Current window: {current_range}\n\n"
+            "Monitoring will continue automatically.\n\n"
+            f"🔍 View incident details\n{incident_link}"
+        )
+    return body
 
 
 # -------------------------
@@ -247,27 +262,30 @@ def main() -> int:
             elif action in {"escalate", "downgrade", "update"}:
                 prev_state = open_incident.state.value
                 prev_sev = open_incident.severity.value
+                prev_value = open_incident.value
                 open_incident.severity = next_severity
                 open_incident.value = psi_score
                 open_incident.drift_id = drift.drift_id
                 session.add(open_incident)
-                session.add(
-                    IncidentEvent(
-                        incident_id=open_incident.incident_id,
-                        org_id=m.org_id,
-                        model_id=m.model_id,
-                        metric="psi_score",
-                        ts=now,
-                        action=action,
-                        prev_state=prev_state,
-                        new_state=open_incident.state.value,
-                        prev_severity=prev_sev,
-                        new_severity=open_incident.severity.value,
-                        value=psi_score,
-                        actor=IncidentEventActor.WORKER.value,
-                        actor_user_id=None,
+                changed = (prev_sev != next_severity.value) or (abs(prev_value - psi_score) > 1e-6)
+                if changed:
+                    session.add(
+                        IncidentEvent(
+                            incident_id=open_incident.incident_id,
+                            org_id=m.org_id,
+                            model_id=m.model_id,
+                            metric="psi_score",
+                            ts=now,
+                            action=action,
+                            prev_state=prev_state,
+                            new_state=open_incident.state.value,
+                            prev_severity=prev_sev,
+                            new_severity=open_incident.severity.value,
+                            value=psi_score,
+                            actor=IncidentEventActor.WORKER.value,
+                            actor_user_id=None,
+                        )
                     )
-                )
 
             elif action == "resolve":
                 prev_state = open_incident.state.value

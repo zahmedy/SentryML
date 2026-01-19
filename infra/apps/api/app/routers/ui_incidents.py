@@ -53,7 +53,7 @@ def ui_incident_detail(
     events = session.exec(
         select(IncidentEvent)
         .where((IncidentEvent.incident_id == incident_id) & (IncidentEvent.org_id == user.org_id))
-        .order_by(IncidentEvent.ts.asc())
+        .order_by(IncidentEvent.ts.desc())
         .limit(limit)
     ).all()
 
@@ -95,6 +95,66 @@ def ui_incident_ack(
         metric=inc.metric,
         ts=datetime.utcnow(),
         action=IncidentEventAction.ACK,
+        prev_state=prev_state,
+        new_state=inc.state,
+        prev_severity=prev_sev,
+        new_severity=inc.severity,
+        value=inc.value,
+        actor=IncidentEventActor.USER,
+        actor_user_id=user.user_id,
+    )
+    session.add(ev)
+    session.commit()
+
+    route = session.exec(
+        select(AlertRoute).where(
+            (AlertRoute.org_id == inc.org_id) & (AlertRoute.is_enabled == True)  # noqa: E712
+        )
+    ).first()
+    if route:
+        ui_base = os.getenv("UI_BASE_URL", "http://localhost:9000")
+        send_slack(
+            route.slack_webhook_url,
+            (
+                "✅ Incident Acknowledged\n\n"
+                f"Acknowledged by: user ({str(user.user_id)[:10]})\n\n"
+                f"View incident details\n{ui_base}/incidents/{inc.incident_id}"
+            ),
+        )
+
+    return {"ok": True}
+
+
+@router.post("/incidents/{incident_id}/unack")
+def ui_incident_unack(
+    incident_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    inc = session.exec(
+        select(Incident).where((Incident.incident_id == incident_id) & (Incident.org_id == user.org_id))
+    ).first()
+    if not inc:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    if inc.state != IncidentState.ACK:
+        raise HTTPException(status_code=400, detail="Only acknowledged incidents can be unacknowledged")
+
+    prev_state = inc.state
+    prev_sev = inc.severity
+
+    inc.state = IncidentState.OPEN
+    inc.acknowledged_at = None
+    inc.acknowledged_by_user_id = None
+    session.add(inc)
+
+    ev = IncidentEvent(
+        incident_id=inc.incident_id,
+        org_id=inc.org_id,
+        model_id=inc.model_id,
+        metric=inc.metric,
+        ts=datetime.utcnow(),
+        action=IncidentEventAction.UPDATE,
         prev_state=prev_state,
         new_state=inc.state,
         prev_severity=prev_sev,
@@ -165,7 +225,6 @@ def ui_incident_resolve(
                 f"Severity: {inc.severity}\n"
                 f"PSI: {psi_val}\n"
                 f"Incident: {ui_base}/incidents/{inc.incident_id}\n"
-                "Ack in UI to mark as seen."
             ),
         )
 
@@ -228,7 +287,6 @@ def ui_incident_close(
                 f"Severity: {inc.severity}\n"
                 f"PSI: {psi_val}\n"
                 f"Incident: {ui_base}/incidents/{inc.incident_id}\n"
-                "Ack in UI to mark as seen."
             ),
         )
 

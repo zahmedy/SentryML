@@ -19,6 +19,9 @@
       <form action="/incidents/{{ incident.incident_id }}/resolve" method="post" style="display:inline;">
         <button type="submit">Resolve</button>
       </form>
+      <form action="/incidents/{{ incident.incident_id }}/unack" method="post" style="display:inline;">
+        <button type="submit">Unack</button>
+      </form>
     {% elif state_norm == "resolved" %}
       <form action="/incidents/{{ incident.incident_id }}/close" method="post" style="display:inline;">
         <button type="submit">Close</button>

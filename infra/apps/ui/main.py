@@ -450,3 +450,14 @@ def ui_incident_resolve(request: Request, incident_id: str):
     )
     resp.raise_for_status()
     return RedirectResponse(f"/incidents/{incident_id}", status_code=303)
+
+
+@app.post("/incidents/{incident_id}/unack")
+def ui_incident_unack(request: Request, incident_id: str):
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/incidents/{incident_id}/unack",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse(f"/incidents/{incident_id}", status_code=303)
