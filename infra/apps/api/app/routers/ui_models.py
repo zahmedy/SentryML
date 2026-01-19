@@ -19,6 +19,14 @@ def ui_model_detail(
     limit: int = 50,
     drift_limit: int = 50,
 ):
+    cfg = session.exec(
+        select(MonitorConfig).where(
+            (MonitorConfig.org_id == user.org_id) & (MonitorConfig.model_id == model_id)
+        )
+    ).first()
+    if not cfg:
+        cfg = MonitorConfig(org_id=user.org_id, model_id=model_id)
+
     drift = session.exec(
         select(DriftResult)
         .where((DriftResult.org_id == user.org_id) & (DriftResult.model_id == model_id))
@@ -45,6 +53,7 @@ def ui_model_detail(
         "drift": drift, 
         "incidents": incidents,
         "recent_predictions": preds,
+        "monitor": cfg,
     }
 
 @router.post("/models/{model_id}/monitoring/enable")

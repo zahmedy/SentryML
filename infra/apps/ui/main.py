@@ -390,6 +390,7 @@ def model_detail(
             "pred_limit": pred_limit,
             "drift_limit": drift_limit,
             "recent_predictions": data.get("recent_predictions", []),
+            "monitor": data.get("monitor"),
         },
     )
 

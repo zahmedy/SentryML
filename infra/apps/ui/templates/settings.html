@@ -30,40 +30,7 @@
   }
 </script>
 
-<h3>Monitoring</h3>
-{% if monitors|length == 0 %}
-  <p>No models yet. Send prediction events to see monitoring settings.</p>
-{% else %}
-<table border="1" cellpadding="6" cellspacing="0">
-  <tr>
-    <th>Model</th>
-    <th>Enabled</th>
-    <th>Baseline Days</th>
-    <th>Current Days</th>
-    <th>Bins</th>
-    <th>Min Samples</th>
-    <th>Warn</th>
-    <th>Critical</th>
-    <th>Save</th>
-  </tr>
-  {% for m in monitors %}
-  <tr>
-    <form id="mon-{{ m.model_id }}" action="/settings/monitor/{{ m.model_id }}" method="post"></form>
-    <td>{{ m.model_id }}</td>
-    <td><input form="mon-{{ m.model_id }}" type="checkbox" name="is_enabled" {% if m.is_enabled %}checked{% endif %} /></td>
-    <td><input form="mon-{{ m.model_id }}" type="number" name="baseline_days" value="{{ m.baseline_days }}" min="1" /></td>
-    <td><input form="mon-{{ m.model_id }}" type="number" name="current_days" value="{{ m.current_days }}" min="1" /></td>
-    <td><input form="mon-{{ m.model_id }}" type="number" name="num_bins" value="{{ m.num_bins }}" min="2" /></td>
-    <td><input form="mon-{{ m.model_id }}" type="number" name="min_samples" value="{{ m.min_samples }}" min="1" /></td>
-    <td><input form="mon-{{ m.model_id }}" type="number" name="warn_threshold" value="{{ m.warn_threshold }}" step="0.001" /></td>
-    <td><input form="mon-{{ m.model_id }}" type="number" name="critical_threshold" value="{{ m.critical_threshold }}" step="0.001" /></td>
-    <td><button form="mon-{{ m.model_id }}" type="submit">Save</button></td>
-  </tr>
-  {% endfor %}
-</table>
-{% endif %}
-
-<h3 style="margin-top:20px;">Slack Alerts</h3>
+<h3>Slack Alerts</h3>
 <form action="/settings/slack" method="post" style="margin:10px 0;">
   <label>Slack Webhook URL</label><br/>
   <input type="text" name="slack_webhook_url" style="width:60%;" value="{{ slack.slack_webhook_url if slack else '' }}" />

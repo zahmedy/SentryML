@@ -6,6 +6,38 @@
   <div class="section-sub"><a href="/dashboard">Back to dashboard</a></div>
 </div>
 
+<div class="card" style="margin:12px 0 18px;">
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <div style="font-weight:700;">Monitoring</div>
+    {% if monitor and monitor.is_enabled %}
+      <span class="badge badge-ok">Enabled</span>
+    {% else %}
+      <span class="badge badge-neutral">Disabled</span>
+    {% endif %}
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-top:10px;">
+    <div>
+      <div class="muted">Baseline days</div>
+      <div>{{ monitor.baseline_days if monitor else 7 }}</div>
+    </div>
+    <div>
+      <div class="muted">Current days</div>
+      <div>{{ monitor.current_days if monitor else 1 }}</div>
+    </div>
+    <div>
+      <div class="muted">Warn threshold</div>
+      <div>{{ (monitor.warn_threshold if monitor else 0.1)|fmt_num }}</div>
+    </div>
+    <div>
+      <div class="muted">Critical threshold</div>
+      <div>{{ (monitor.critical_threshold if monitor else 0.2)|fmt_num }}</div>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:10px;">
+    Defaults work well for most models. If you need custom thresholds, contact us or edit via API.
+  </p>
+</div>
+
 <h3>Incidents</h3>
 <p style="color:#666; margin-top:-6px;">
   Resolved automatically when PSI returns to normal.
