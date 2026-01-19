@@ -1,87 +1,169 @@
 # SentryML
-SaaS that monitors ML decisions, detects drift, and alerts teams before business metrics degrade.
 
-## Repo strcture
+SentryML monitors machine learning models in production for **data drift** and turns distribution changes into **clear, actionable incidents**.
 
-sentryml/
-  apps/
-    api/                 # FastAPI: ingest + query + admin
-    worker/              # scheduled drift jobs + alerts
-  packages/
-    core/                # shared types + metrics (PSI) + config parsing
-  infra/
-    docker-compose.yml   # api + db + worker
-  docs/
-    architecture.md
-    api.md
+It is designed to be simple, explicit, and production-oriented.
 
+---
 
-## Core components (minimal, shippable)
+## Why SentryML exists
 
-1) API service (FastAPI)
+Machine learning models often fail silently in production when incoming data changes.
 
-Endpoints:
+These changes may come from:
+- upstream pipeline updates
+- changes in user behavior
+- seasonal or regional effects
+- logging or schema issues
 
-POST /v1/events/prediction ✅ ingest prediction event
-POST /v1/events/outcome ✅ ingest outcome event (optional)
-GET /v1/models/{model_id}/drift ✅ last drift results
-GET /v1/incidents ✅ list incidents
-POST /v1/monitors ✅ create/update monitor config (baseline/current windows, thresholds)
+Without monitoring, these shifts can go unnoticed until downstream metrics degrade.
 
-2) Database (Postgres)
+SentryML detects **distribution drift early**, before those failures become costly.
 
-Tables (MVP):
+---
 
-prediction_events
-outcome_events
-monitor_configs
-drift_results
-incidents
-alert_routes (optional: where to send alerts)
+## How SentryML works
 
-3) Worker
+### 1. Prediction ingestion
+Your application sends prediction events to SentryML via an API.
 
-Runs every X minutes/hours
-For each monitor config:
-queries baseline/current windows
-computes PSI on score distribution
-writes drift_results
-creates incidents + triggers alert if needed
+A prediction event typically includes:
+- `model_id`
+- `prediction`
+- optional `score` or confidence
+- timestamp
 
-4) Alerting (simple first)
+You do **not** send training data, feature values, or model artifacts.
 
-Slack webhook OR email (pick one first)
-Store last-alert time to avoid spam
+As soon as events are received, the model is automatically registered.
 
-## The universal event schema (what you ingest)
+---
 
-## Prediction event
+### 2. Baseline vs current comparison
+For each monitored model, SentryML compares:
+- a **baseline window** (historical data)
+- a **current window** (recent data)
 
-Required:
+These windows are configurable per model.
 
-event_id (UUID) (or server generates)
-model_id
-entity_id
-timestamp
-score (float)
+---
 
-Optional:
+### 3. Drift detection
+SentryML computes a **Population Stability Index (PSI)** score to measure how much the data distribution has shifted.
 
-prediction (class/label)
-features (json) — optional
-segment (json) — like country/device/channel
-latency_ms, request_id, model_version
+PSI is used because it is:
+- widely understood
+- interpretable
+- stable in production
+- inexpensive to compute
 
-## Outcome event
+Severity is determined by thresholds:
+- **OK** — no meaningful shift
+- **Warning** — moderate shift
+- **Critical** — significant shift
 
-Required:
+---
 
-outcome_id (UUID)
-entity_id
-timestamp
-value (bool/number)
+### 4. Incidents
+When drift crosses a threshold, SentryML opens an **incident**.
 
-Optional:
+Each incident has:
+- a **severity** (`warn` or `critical`)
+- a **state** (`open`, `acknowledged`, `resolved`, `closed`)
+- a clear timeline showing how it evolved
 
-event_id (if client has it)
-outcome_type (“label”, “conversion”, …)
+Incidents are meant to be understandable and auditable, not noisy.
+
+---
+
+### 5. Alerts
+When incidents open, escalate, or resolve, SentryML sends alerts (e.g. Slack).
+
+Alerts are designed to answer quickly:
+- What happened?
+- How serious is it?
+- Why did it happen?
+- What happens next?
+
+Each alert links directly to the incident detail page.
+
+---
+
+### 6. Automatic resolution
+SentryML continuously re-evaluates drift.
+
+If the data returns to normal:
+- the incident is **resolved automatically**
+- a resolution alert is sent
+
+No manual cleanup is required.
+
+---
+
+### 7. Investigation and acknowledgment
+From the UI, you can:
+- inspect incident timelines
+- review recent prediction activity
+- acknowledge incidents once reviewed
+- manually close acknowledged incidents
+
+Acknowledging an incident marks it as *seen*.  
+It does **not** silence alerts.
+
+---
+
+## Monitoring model
+
+- Monitoring is enabled per model
+- Drift detection runs on a scheduled worker
+- All state changes are visible and explicit
+- No hidden automation
+
+---
+
+## What SentryML does not do
+
+By design, SentryML does **not**:
+- measure model accuracy
+- require ground-truth labels
+- inspect raw feature values
+- store model artifacts or weights
+- take automated corrective actions
+
+SentryML focuses on **early, reliable signal**, not automated decisions.
+
+---
+
+## Data and privacy
+
+SentryML stores only the data required for monitoring:
+- prediction events (limited to fields you send)
+- aggregated statistics for drift detection
+- incident records and timelines
+- basic model metadata
+
+SentryML does **not** store:
+- training data
+- raw input payloads
+- feature values
+- labels
+- model artifacts
+
+API keys are hashed and never stored in plaintext.
+
+---
+
+## Who SentryML is for
+
+SentryML is built for:
+- ML engineers running production models
+- teams without heavy MLOps infrastructure
+- systems where clarity and trust matter more than complexity
+
+It is intentionally **not** a full MLOps platform.
+
+---
+
+## In one sentence
+
+**SentryML watches how your production data changes — and tells you clearly when it matters.**
