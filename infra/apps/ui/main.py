@@ -116,6 +116,27 @@ def settings_page(request: Request):
     )
 
 
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    r = require_session(request)
+    if r:
+        return r
+    return templates.TemplateResponse(
+        "privacy.html",
+        {"request": request},
+    )
+
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact_page(request: Request):
+    r = require_session(request)
+    if r:
+        return r
+    return templates.TemplateResponse(
+        "contact.html",
+        {"request": request},
+    )
+
 @app.get("/settings/api-keys", response_class=HTMLResponse)
 def api_keys_page(request: Request):
     return settings_page(request)

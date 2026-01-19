@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="section-header">
+  <h2 class="section-title">Data & Privacy</h2>
+  <div class="section-sub">How SentryML handles your data.</div>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">What data we receive</div>
+  <div class="section-sub" style="margin-top:6px;">
+    SentryML receives prediction events that you send via the API, including:
+  </div>
+  <ul style="margin:8px 0 0 18px;">
+    <li>Model identifier</li>
+    <li>Prediction value</li>
+    <li>Optional score or confidence</li>
+    <li>Timestamp</li>
+  </ul>
+  <div class="section-sub" style="margin-top:8px;">
+    These events are used only to monitor distribution changes over time.
+  </div>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">What data we store</div>
+  <ul style="margin:8px 0 0 18px;">
+    <li>Prediction events (limited to the fields you send)</li>
+    <li>Aggregated statistics used for drift detection</li>
+    <li>Incident records and timelines</li>
+    <li>Metadata about your models (first seen, last seen, event counts)</li>
+  </ul>
+  <div class="section-sub" style="margin-top:8px;">
+    We do not modify or enrich your data.
+  </div>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">What we do not store</div>
+  <ul style="margin:8px 0 0 18px;">
+    <li>Training data</li>
+    <li>Feature values</li>
+    <li>Raw input payloads</li>
+    <li>Model weights or artifacts</li>
+    <li>Ground-truth labels</li>
+    <li>Personally identifiable information (PII), unless you explicitly send it</li>
+  </ul>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">Data isolation</div>
+  <div class="section-sub" style="margin-top:6px;">
+    Each organization’s data is logically isolated. API keys are scoped to a single
+    organization and are required for all ingestion requests.
+  </div>
+  <div class="section-sub" style="margin-top:6px;">
+    API keys are hashed and never stored in plaintext.
+  </div>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">Authentication</div>
+  <ul style="margin:8px 0 0 18px;">
+    <li>API access is authenticated using API keys</li>
+    <li>Web access uses secure, HTTP-only sessions</li>
+    <li>You can rotate or revoke API keys at any time</li>
+  </ul>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">Data retention</div>
+  <div class="section-sub" style="margin-top:6px;">
+    Prediction events and incidents are currently retained until explicitly deleted.
+    Data retention controls are planned for a future release.
+  </div>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">Monitoring behavior</div>
+  <ul style="margin:8px 0 0 18px;">
+    <li>Drift detection runs on a scheduled worker</li>
+    <li>Monitoring is enabled per model</li>
+    <li>Incidents resolve automatically when data returns to normal</li>
+    <li>Acknowledging an incident does not silence alerts</li>
+  </ul>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">Integrations</div>
+  <div class="section-sub" style="margin-top:6px;">
+    When enabled, Slack alerts include:
+  </div>
+  <ul style="margin:8px 0 0 18px;">
+    <li>Model name</li>
+    <li>Incident severity</li>
+    <li>Summary statistics</li>
+  </ul>
+  <div class="section-sub" style="margin-top:6px;">
+    No raw prediction data is sent to Slack.
+  </div>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">Security</div>
+  <div class="section-sub" style="margin-top:6px;">
+    SentryML follows standard security practices for early-stage SaaS products.
+    We do not claim formal compliance certifications at this time.
+  </div>
+</div>
+
+<div class="notice">
+  <div class="section-title" style="font-size:16px;">Questions?</div>
+  <div class="section-sub" style="margin-top:6px;">
+    If you have questions about data handling or privacy, contact us before integrating.
+  </div>
+</div>
+
+{% endblock %}
