@@ -76,6 +76,8 @@ class ModelRegistry(SQLModel, table=True):
     first_seen_at: datetime = Field(default_factory=datetime.utcnow)
     last_seen_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     event_count: int = Field(default=0)
+    is_deleted: bool = Field(default=False, index=True)
+    deleted_at: datetime | None = Field(default=None)
 
 
 class MonitorConfig(SQLModel, table=True):

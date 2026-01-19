@@ -36,10 +36,7 @@ services:
       context: .
       dockerfile: Dockerfile
     command: >
-      sh -c "echo '*/15 * * * * cd /app && python3 -m apps.worker.worker.run_once >> /proc/1/fd/1 2>> /proc/1/fd/2' > /etc/cron.d/worker
-      && chmod 0644 /etc/cron.d/worker
-      && crontab /etc/cron.d/worker
-      && cron -f"
+      sh -c "printf 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nDATABASE_URL=%s\nAPI_KEY_SECRET=%s\n*/15 * * * * cd /app && /usr/local/bin/python -m apps.worker.worker.run_once >> /proc/1/fd/1 2>> /proc/1/fd/2\n' \"${DATABASE_URL}\" \"${API_KEY_SECRET}\" > /etc/cron.d/worker && chmod 0644 /etc/cron.d/worker && crontab /etc/cron.d/worker && cron -f"
     environment:
       DATABASE_URL: postgresql+psycopg2://sentryml:sentryml@db:5432/sentryml
       API_KEY_SECRET: dev-secret

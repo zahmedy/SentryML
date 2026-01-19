@@ -83,7 +83,10 @@ def list_models(
 ):
     models = session.exec(
         select(ModelRegistry)
-        .where(ModelRegistry.org_id == org_id)
+        .where(
+            (ModelRegistry.org_id == org_id)
+            & (ModelRegistry.is_deleted == False)  # noqa: E712
+        )
     ).all()
 
     open_incidents = session.exec(

@@ -34,7 +34,10 @@ def ui_dashboard(
 ):
     models = session.exec(
         select(ModelRegistry)
-        .where(ModelRegistry.org_id == user.org_id)
+        .where(
+            (ModelRegistry.org_id == user.org_id)
+            & (ModelRegistry.is_deleted == False)  # noqa: E712
+        )
         .order_by(ModelRegistry.last_seen_at.desc())
         .limit(limit)
     ).all()

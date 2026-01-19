@@ -62,13 +62,13 @@
         <div>
           <div class="muted">Baseline window</div>
           <div>
-            {% if drift %}{{ drift.baseline_start|fmt_dt }} → {{ drift.baseline_end|fmt_dt }} (n={{ drift.baseline_n }}){% else %}—{% endif %}
+            {% if drift %}{{ drift.baseline_start|fmt_dt }} → {{ drift.baseline_end|fmt_dt }} (window_count={{ drift.baseline_n }}){% else %}—{% endif %}
           </div>
         </div>
         <div>
           <div class="muted">Current window</div>
           <div>
-            {% if drift %}{{ drift.current_start|fmt_dt }} → {{ drift.current_end|fmt_dt }} (n={{ drift.current_n }}){% else %}—{% endif %}
+            {% if drift %}{{ drift.current_start|fmt_dt }} → {{ drift.current_end|fmt_dt }} (window_count={{ drift.current_n }}){% else %}—{% endif %}
           </div>
         </div>
         <div>

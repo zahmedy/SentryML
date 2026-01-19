@@ -415,6 +415,17 @@ def ui_disable_monitoring(request: Request, model_id: str):
     return RedirectResponse("/dashboard", status_code=303)
 
 
+@app.post("/models/{model_id}/delete")
+def ui_delete_model(request: Request, model_id: str):
+    resp = requests.post(
+        f"{API_BASE}/v1/ui/models/{model_id}/delete",
+        cookies=api_cookie_jar(request),
+        timeout=5,
+    )
+    resp.raise_for_status()
+    return RedirectResponse("/dashboard", status_code=303)
+
+
 @app.get("/incidents/{incident_id}", response_class=HTMLResponse)
 def incident_detail(request: Request, incident_id: str):
     if not request.cookies.get("sentryml_session"):

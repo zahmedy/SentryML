@@ -3,8 +3,14 @@ from sqlmodel import Session, select
 from datetime import datetime
 
 from apps.sentryml_core.db import get_session
-from apps.sentryml_core.models import (DriftResult, Incident, User, 
-                                    MonitorConfig, PredictionEvent)
+from apps.sentryml_core.models import (
+    DriftResult,
+    Incident,
+    User,
+    MonitorConfig,
+    PredictionEvent,
+    ModelRegistry,
+)
 from apps.api.app.deps_auth import get_current_user
 from apps.sentryml_core.schemas import MonitorUpdate
 
@@ -19,6 +25,10 @@ def ui_model_detail(
     limit: int = 50,
     drift_limit: int = 50,
 ):
+    model = session.get(ModelRegistry, (user.org_id, model_id))
+    if not model or model.is_deleted:
+        raise HTTPException(status_code=404, detail="Model not found")
+
     cfg = session.exec(
         select(MonitorConfig).where(
             (MonitorConfig.org_id == user.org_id) & (MonitorConfig.model_id == model_id)
@@ -122,5 +132,33 @@ def update_monitor(
 
     cfg.updated_at = datetime.utcnow()
     session.add(cfg)
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/models/{model_id}/delete")
+def delete_model(
+    model_id: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    model = session.get(ModelRegistry, (user.org_id, model_id))
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+
+    model.is_deleted = True
+    model.deleted_at = datetime.utcnow()
+    session.add(model)
+
+    cfg = session.exec(
+        select(MonitorConfig).where(
+            (MonitorConfig.org_id == user.org_id) & (MonitorConfig.model_id == model_id)
+        )
+    ).first()
+    if cfg:
+        cfg.is_enabled = False
+        cfg.updated_at = datetime.utcnow()
+        session.add(cfg)
+
     session.commit()
     return {"ok": True}

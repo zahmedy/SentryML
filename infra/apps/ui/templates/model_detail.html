@@ -1,150 +1,317 @@
 {% extends "base.html" %}
+
+{% block title %}{{ model_id }}{% endblock %}
+
 {% block content %}
 
-<div class="section-header">
-  <h2 class="section-title">Model: {{ model_id }}</h2>
-  <div class="section-sub"><a href="/dashboard">Back to dashboard</a></div>
+<div class="page-header">
+  <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+    <a href="/dashboard" style="color: var(--color-gray-500); font-size: 14px;">← Back to Dashboard</a>
+  </div>
+  <h1 class="page-title">{{ model_id }}</h1>
+  <p class="page-subtitle">Monitor data drift and view prediction history</p>
 </div>
 
-<div class="card" style="margin:12px 0 18px;">
-  <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div style="font-weight:700;">Monitoring</div>
+<!-- Monitoring Configuration Card -->
+<div class="card" style="margin-bottom: 32px;">
+  <div class="card-header">
+    <h2 class="card-title">Monitoring Configuration</h2>
     {% if monitor and monitor.is_enabled %}
-      <span class="badge badge-ok">Enabled</span>
+      <span class="badge badge-ok"><span class="status-dot"></span> Enabled</span>
     {% else %}
       <span class="badge badge-neutral">Disabled</span>
     {% endif %}
   </div>
-  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-top:10px;">
-    <div>
-      <div class="muted">Baseline days</div>
-      <div>{{ monitor.baseline_days if monitor else 7 }}</div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; margin-bottom: 16px;">
+      <div>
+        <div class="muted text-sm" style="margin-bottom: 6px;">Baseline Window</div>
+        <div style="font-size: 24px; font-weight: 600; color: var(--color-gray-900);">
+          {{ monitor.baseline_days if monitor else 7 }} days
+        </div>
+      </div>
+      <div>
+        <div class="muted text-sm" style="margin-bottom: 6px;">Current Window</div>
+        <div style="font-size: 24px; font-weight: 600; color: var(--color-gray-900);">
+          {{ monitor.current_days if monitor else 1 }} day
+        </div>
+      </div>
+      <div>
+        <div class="muted text-sm" style="margin-bottom: 6px;">Warning Threshold</div>
+        <div style="font-size: 24px; font-weight: 600; color: var(--color-warning-600);">
+          {{ (monitor.warn_threshold if monitor else 0.1)|fmt_num }}
+        </div>
+      </div>
+      <div>
+        <div class="muted text-sm" style="margin-bottom: 6px;">Critical Threshold</div>
+        <div style="font-size: 24px; font-weight: 600; color: var(--color-danger-600);">
+          {{ (monitor.critical_threshold if monitor else 0.2)|fmt_num }}
+        </div>
+      </div>
     </div>
-    <div>
-      <div class="muted">Current days</div>
-      <div>{{ monitor.current_days if monitor else 1 }}</div>
-    </div>
-    <div>
-      <div class="muted">Warn threshold</div>
-      <div>{{ (monitor.warn_threshold if monitor else 0.1)|fmt_num }}</div>
-    </div>
-    <div>
-      <div class="muted">Critical threshold</div>
-      <div>{{ (monitor.critical_threshold if monitor else 0.2)|fmt_num }}</div>
+    <div class="notice" style="margin: 0;">
+      <strong>Configuration:</strong> Defaults work well for most models. For custom thresholds, contact us or edit via API.
     </div>
   </div>
-  <p class="muted" style="margin-top:10px;">
-    Defaults work well for most models. If you need custom thresholds, contact us or edit via API.
-  </p>
 </div>
 
-<h3>Incidents</h3>
-<p style="color:#666; margin-top:-6px;">
-  Resolved automatically when PSI returns to normal.
-</p>
+<!-- Incidents Section -->
+<div class="section-header">
+  <div>
+    <h2 class="section-title">Incidents</h2>
+    <div class="section-sub">Automatically resolved when PSI returns to normal</div>
+  </div>
+</div>
+
 {% if incidents|length == 0 %}
-  <p>No incidents for this model.</p>
+  <div class="card">
+    <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
+      <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">✓</div>
+      <div style="font-size: 16px; font-weight: 500; color: var(--color-gray-700);">No incidents detected</div>
+      <div style="font-size: 14px; margin-top: 8px;">This model is operating within normal parameters</div>
+    </div>
+  </div>
 {% else %}
-<div class="table-wrap">
-<table border="0" cellpadding="6" cellspacing="0" width="100%">
-  <tr>
-    <th>Incident</th>
-    <th>State</th>
-    <th>PSI</th>
-    <th>Opened</th>
-    <th>Closed</th>
-  </tr>
-  {% for i in incidents %}
-  <tr>
-    <td>
-      <a href="/incidents/{{ i.incident_id }}">
-        {{ i.state }} ({{ (i.incident_id|string)[:10] }})
-      </a>
-    </td>
-    <td>{{ i.state }}</td>
-    <td>{{ i.value|fmt_num }}</td>
-    <td>{{ i.opened_at|fmt_dt }}</td>
-    <td>{{ i.closed_at|fmt_dt }}</td>
-  </tr>
-  {% endfor %}
-</table>
-</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Incident ID</th>
+          <th>State</th>
+          <th>PSI Score</th>
+          <th>Opened</th>
+          <th>Closed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in incidents %}
+        <tr>
+          <td>
+            <a href="/incidents/{{ i.incident_id }}" style="font-weight: 500; display: flex; align-items: center; gap: 8px;">
+              #{{ (i.incident_id|string)[:8] }}
+              {% if i.state == "open" %}
+                <span class="badge badge-critical">{{ i.state }}</span>
+              {% elif i.state == "acknowledged" %}
+                <span class="badge badge-warn">{{ i.state }}</span>
+              {% else %}
+                <span class="badge badge-neutral">{{ i.state }}</span>
+              {% endif %}
+            </a>
+          </td>
+          <td>
+            <span class="font-medium">{{ i.state|title }}</span>
+          </td>
+          <td>
+            <span style="font-weight: 500; {% if i.value > 0.2 %}color: var(--color-danger-600);{% elif i.value > 0.1 %}color: var(--color-warning-600);{% endif %}">
+              {{ i.value|fmt_num }}
+            </span>
+          </td>
+          <td class="muted">{{ i.opened_at|fmt_dt }}</td>
+          <td class="muted">{{ i.closed_at|fmt_dt if i.closed_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endif %}
 
-<h3 style="margin-top:20px;">Drift History</h3>
-<form method="get" action="/models/{{ model_id }}" style="margin:10px 0;">
-  <label>Show last</label>
-  <select name="drift_limit" onchange="this.form.submit()">
-    <option value="50"  {% if drift_limit == 50 %}selected{% endif %}>50</option>
-    <option value="200" {% if drift_limit == 200 %}selected{% endif %}>200</option>
-    <option value="1000" {% if drift_limit == 1000 %}selected{% endif %}>1000</option>
-  </select>
-  <input type="hidden" name="pred_limit" value="{{ pred_limit }}" />
-</form>
+<!-- Drift History Section -->
+<div class="section-header" style="margin-top: 48px;">
+  <div>
+    <h2 class="section-title">Drift History</h2>
+    <div class="section-sub">PSI calculation results over time</div>
+    <div class="section-sub">Drift scores based on very small sample sizes may be unstable</div>
+  </div>
+  <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 8px;">
+    <label class="muted text-sm">Show last:</label>
+    <select name="drift_limit" onchange="this.form.submit()" style="width: auto;">
+      <option value="50"  {% if drift_limit == 50 %}selected{% endif %}>50</option>
+      <option value="200" {% if drift_limit == 200 %}selected{% endif %}>200</option>
+      <option value="1000" {% if drift_limit == 1000 %}selected{% endif %}>1000</option>
+    </select>
+    <input type="hidden" name="pred_limit" value="{{ pred_limit }}" />
+  </form>
+</div>
+
 {% if drift|length == 0 %}
-  <p>No drift results yet.</p>
+  <div class="card">
+    <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
+      <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">📊</div>
+      <div style="font-size: 16px; font-weight: 500; color: var(--color-gray-700);">No drift results yet</div>
+      <div style="font-size: 14px; margin-top: 8px;">Drift analysis will appear after monitoring processes data</div>
+    </div>
+  </div>
 {% else %}
-<div class="table-wrap" style="max-height:450px; overflow-y:auto;">
-<table border="0" cellpadding="6" cellspacing="0" width="100%">
-  <tr>
-    <th>Drift ID</th>
-    <th>Computed</th>
-    <th>PSI</th>
-    <th>Baseline</th>
-    <th>Current</th>
-  </tr>
-  {% for d in drift %}
-  <tr id="drift-{{ d.drift_id }}">
-    <td>{{ (d.drift_id|string)[:10] }}</td>
-    <td>{{ d.computed_at|fmt_dt }}</td>
-    <td>{{ d.psi_score|fmt_num }}</td>
-    <td>{{ d.baseline_start|fmt_dt }} → {{ d.baseline_end|fmt_dt }} (n={{ d.baseline_n }})</td>
-    <td>{{ d.current_start|fmt_dt }} → {{ d.current_end|fmt_dt }} (n={{ d.current_n }})</td>
-  </tr>
-  {% endfor %}
-</table>
-</div>
+  <div class="table-wrap" style="max-height: 500px; overflow-y: auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Drift ID</th>
+          <th>Computed</th>
+          <th>PSI Score</th>
+          <th>Baseline Period</th>
+          <th>Current Period</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in drift %}
+        <tr id="drift-{{ d.drift_id }}">
+          <td>
+            <span class="font-mono text-sm">#{{ (d.drift_id|string)[:8] }}</span>
+          </td>
+          <td class="muted">{{ d.computed_at|fmt_dt }}</td>
+          <td>
+            <span style="font-weight: 600; {% if d.psi_score > 0.2 %}color: var(--color-danger-600);{% elif d.psi_score > 0.1 %}color: var(--color-warning-600);{% else %}color: var(--color-success-600);{% endif %}">
+              {{ d.psi_score|fmt_num }}
+            </span>
+          </td>
+          <td class="text-sm">
+            <div>{{ d.baseline_start|fmt_dt }} → {{ d.baseline_end|fmt_dt }}</div>
+            <div class="muted" style="margin-top: 2px;">window_count={{ d.baseline_n }}</div>
+          </td>
+          <td class="text-sm">
+            <div>{{ d.current_start|fmt_dt }} → {{ d.current_end|fmt_dt }}</div>
+            <div class="muted" style="margin-top: 2px;">window_count={{ d.current_n }}</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endif %}
 
-<h3 style="margin-top:20px;">Recent Predictions</h3>
-<p style="color:#666; margin-top:-6px;">
-  Showing recent events only.
-</p>
-
-<form method="get" action="/models/{{ model_id }}" style="margin:10px 0;">
-  <label>Show last</label>
-  <select name="pred_limit" onchange="this.form.submit()">
-    <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
-    <option value="200" {% if pred_limit == 200 %}selected{% endif %}>200</option>
-    <option value="1000" {% if pred_limit == 1000 %}selected{% endif %}>1000</option>
-  </select>
-</form>
+<!-- Recent Predictions Section -->
+<div class="section-header" style="margin-top: 48px;">
+  <div>
+    <h2 class="section-title">Recent Predictions</h2>
+    <div class="section-sub">Latest prediction events received</div>
+  </div>
+  <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 8px;">
+    <label class="muted text-sm">Show last:</label>
+    <select name="pred_limit" onchange="this.form.submit()" style="width: auto;">
+      <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
+      <option value="200" {% if pred_limit == 200 %}selected{% endif %}>200</option>
+      <option value="1000" {% if pred_limit == 1000 %}selected{% endif %}>1000</option>
+    </select>
+    <input type="hidden" name="drift_limit" value="{{ drift_limit }}" />
+  </form>
+</div>
 
 {% if recent_predictions|length == 0 %}
-  <p>No prediction events yet.</p>
+  <div class="card">
+    <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
+      <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">📥</div>
+      <div style="font-size: 16px; font-weight: 500; color: var(--color-gray-700);">No prediction events yet</div>
+      <div style="font-size: 14px; margin-top: 8px;">Start sending prediction events from your application</div>
+    </div>
+  </div>
 {% else %}
-<div class="table-wrap" style="max-height:450px; overflow-y:auto;">
-  <table border="0" cellpadding="6" cellspacing="0" width="100%">
-    <tr>
-      <th>Time</th>
-      <th>Entity</th>
-      <th>Prediction</th>
-      <th>Score</th>
-    </tr>
-    {% for p in recent_predictions %}
-    <tr>
-      <td>{{ p.event_time|fmt_dt }}</td>
-      <td>{{ p.entity_id }}</td>
-      <td>{{ p.prediction }}</td>
-      <td>
-        {% if p.score is not none %}
-          {{ p.score|fmt_num }}
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-</div>
+  <div class="table-wrap" style="max-height: 500px; overflow-y: auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Event Time</th>
+          <th>Entity ID</th>
+          <th>Prediction</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in recent_predictions %}
+        <tr>
+          <td class="muted">{{ p.event_time|fmt_dt }}</td>
+          <td><span class="font-mono text-sm">{{ p.entity_id }}</span></td>
+          <td><span class="badge badge-neutral">{{ p.prediction }}</span></td>
+          <td>
+            {% if p.score is not none %}
+              <span class="font-medium">{{ p.score|fmt_num }}</span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endif %}
+
+<div class="section-header" style="margin-top: 48px;">
+  <div>
+    <h2 class="section-title" style="color:#b91c1c;">Danger zone</h2>
+    <div class="section-sub">Deletion is permanent.</div>
+  </div>
+</div>
+
+<div class="card">
+  <p style="margin-top:0;">
+    Deleting this model will permanently remove:
+  </p>
+  <ul style="margin:0 0 12px 18px; color:#6b7280;">
+    <li>prediction events</li>
+    <li>drift history</li>
+    <li>incidents</li>
+  </ul>
+  <div style="display:flex; justify-content:flex-end;">
+    <button type="button" class="btn btn-danger-outline" id="delete-model-btn">
+      Delete model
+    </button>
+  </div>
+</div>
+
+<div id="delete-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Confirm model deletion</div>
+    <p class="muted" style="margin-top:0;">
+      This action cannot be undone. Type <strong>{{ model_id }}</strong> to confirm.
+    </p>
+    <form method="post" action="/models/{{ model_id }}/delete">
+      <input type="text" id="delete-confirm-input" placeholder="Type model ID to confirm" />
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="delete-cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-danger-outline" id="delete-confirm-btn" disabled>
+          Confirm delete
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const openBtn = document.getElementById("delete-model-btn");
+    const modal = document.getElementById("delete-modal");
+    const cancelBtn = document.getElementById("delete-cancel-btn");
+    const input = document.getElementById("delete-confirm-input");
+    const confirmBtn = document.getElementById("delete-confirm-btn");
+    const modelId = "{{ model_id }}";
+
+    function closeModal() {
+      modal.style.display = "none";
+      input.value = "";
+      confirmBtn.disabled = true;
+    }
+
+    openBtn.addEventListener("click", () => {
+      modal.style.display = "flex";
+      input.focus();
+    });
+
+    cancelBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    input.addEventListener("input", () => {
+      confirmBtn.disabled = input.value.trim() !== modelId;
+    });
+  })();
+</script>
+
+<style>
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+</style>
 
 {% endblock %}

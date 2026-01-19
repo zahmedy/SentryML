@@ -25,7 +25,10 @@ def ui_settings(
     session: Session = Depends(get_session),
 ):
     models = session.exec(
-        select(ModelRegistry).where(ModelRegistry.org_id == user.org_id)
+        select(ModelRegistry).where(
+            (ModelRegistry.org_id == user.org_id)
+            & (ModelRegistry.is_deleted == False)  # noqa: E712
+        )
     ).all()
     configs = session.exec(
         select(MonitorConfig).where(MonitorConfig.org_id == user.org_id)
