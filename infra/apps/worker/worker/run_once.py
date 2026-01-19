@@ -80,9 +80,18 @@ def format_slack_message(
     incident_id: str | None = None,
 ) -> str:
     severity_norm = (severity or "").lower()
+    if action == "escalate":
+        ui_base = os.getenv("UI_BASE_URL", "http://localhost:9000")
+        incident_link = f"{ui_base}/incidents/{incident_id}" if incident_id else ""
+        return (
+            "🚨 Data drift severity increased\n\n"
+            f"The distribution shift for {model_id} has worsened and crossed the critical threshold.\n\n"
+            f"View incident details: {incident_link}"
+        )
+
     if action == "resolve":
-        title = "✅ Incident resolved"
-        sev_line = "Incoming prediction data has returned toward its baseline distribution."
+        title = "✅ Data drift resolved"
+        sev_line = f"Incoming data for {model_id} has returned to its baseline distribution."
     else:
         emoji = "🚨" if severity_norm == "critical" else "⚠️"
         title = f"{emoji} Data drift detected ({severity_norm})"
@@ -104,19 +113,18 @@ def format_slack_message(
         f"• PSI: {psi_score:.2f}\n"
         f"• Current window: {current_range}\n\n"
         "SentryML will continue monitoring this model on the next scheduled run.\n"
-        "The incident will resolve automatically if the data returns to normal.\n\n"
-        f"🔍 View incident details\n{incident_link}"
+            "The incident will resolve automatically if the data returns to normal.\n\n"
+            f"🔍 View incident details\n{incident_link}"
     )
     if action == "resolve":
+        resolved_at = datetime.now(timezone.utc).strftime("%b %d, %H:%M UTC")
         body = (
             f"{title}\n\n"
-            f"{sev_line}\n\n"
-            f"• Model: {model_id}\n"
-            f"• Severity: {severity_norm}\n"
-            f"• PSI: {psi_score:.2f}\n"
-            f"• Current window: {current_range}\n\n"
-            "Monitoring will continue automatically.\n\n"
-            f"🔍 View incident details\n{incident_link}"
+            f"{sev_line}\n"
+            "This incident has been resolved automatically.\n\n"
+            f"• Final PSI: {psi_score:.2f}\n"
+            f"• Resolved at: {resolved_at}\n\n"
+            f"🔍 View incident timeline\n{incident_link}"
         )
     return body
 
@@ -316,7 +324,7 @@ def main() -> int:
             # -------------------------
             # Slack notification
             # -------------------------
-            if action in {"open", "escalate", "downgrade", "resolve"}:
+            if action in {"open", "escalate", "resolve"}:
                 route = route_map.get(m.org_id)
                 if route:
                     inc_id = None
