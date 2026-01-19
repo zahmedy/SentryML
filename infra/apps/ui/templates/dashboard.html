@@ -55,7 +55,7 @@
     </div>
 
     <div class="notice notice-info" style="margin-top: 24px;">
-      <strong>Automated monitoring:</strong> Monitoring runs on a scheduled worker. Incidents resolve automatically when data returns to normal.
+      <strong>Automated monitoring:</strong> Monitoring runs every 15 minutes on a scheduled worker. Incidents resolve automatically when data returns to normal.
     </div>
   </div>
 {% else %}
@@ -116,7 +116,7 @@
         <tr>
           <!-- Model -->
           <td>
-            <a href="/models/{{ m.model_id }}" data-model-id="{{ m.model_id }}" style="font-weight: 500; font-size: 14px;">
+            <a href="/models/{{ m.model_id }}" data-model-id="{{ m.model_id }}" data-first-seen="{{ m.first_seen_at }}" style="font-weight: 500; font-size: 14px;">
               {{ m.model_id }}
             </a>
           </td>
@@ -205,13 +205,19 @@
 
 <script>
   (function () {
-    const key = "sentryml_seen_models";
-    const seen = new Set(JSON.parse(sessionStorage.getItem(key) || "[]"));
+    const key = "sentryml_seen_models_v2";
+    let seenMap = {};
+    try {
+      seenMap = JSON.parse(localStorage.getItem(key) || "{}");
+    } catch (e) {
+      seenMap = {};
+    }
     const links = document.querySelectorAll("a[data-model-id]");
     let hasNew = false;
     links.forEach((link) => {
       const id = link.getAttribute("data-model-id");
-      if (id && !seen.has(id)) {
+      if (!id) return;
+      if (!seenMap[id]) {
         hasNew = true;
         const badge = document.createElement("span");
         badge.textContent = "New";
@@ -220,10 +226,10 @@
         badge.style.fontSize = "11px";
         badge.style.animation = "slideIn 0.3s ease";
         link.appendChild(badge);
+        seenMap[id] = true;
       }
-      if (id) seen.add(id);
     });
-    sessionStorage.setItem(key, JSON.stringify(Array.from(seen)));
+    localStorage.setItem(key, JSON.stringify(seenMap));
     const notice = document.getElementById("model-detected");
     if (notice && hasNew) {
       notice.style.display = "block";
