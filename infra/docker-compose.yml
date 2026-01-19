@@ -35,7 +35,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python -m apps.worker.worker.run_once
+    command: >
+      sh -c "echo '*/15 * * * * cd /app && python -m apps.worker.worker.run_once >> /proc/1/fd/1 2>> /proc/1/fd/2' > /etc/cron.d/worker
+      && chmod 0644 /etc/cron.d/worker
+      && crontab /etc/cron.d/worker
+      && cron -f"
     environment:
       DATABASE_URL: postgresql+psycopg2://sentryml:sentryml@db:5432/sentryml
       API_KEY_SECRET: dev-secret

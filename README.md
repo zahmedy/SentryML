@@ -119,6 +119,11 @@ It does **not** silence alerts.
 - All state changes are visible and explicit
 - No hidden automation
 
+## Monitoring schedule
+
+Drift detection runs on a scheduled worker approximately every 15 minutes.  
+This provides a balance between early detection and stable signals.
+
 ---
 
 ## What SentryML does not do
