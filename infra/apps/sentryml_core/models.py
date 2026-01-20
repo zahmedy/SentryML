@@ -91,8 +91,8 @@ class MonitorConfig(SQLModel, table=True):
 
     baseline_days: int = Field(default=7)
     current_days: int = Field(default=1)
-    num_bins: int = Field(default=100)
-    min_samples: int = Field(default=3)
+    num_bins: int = Field(default=10)
+    min_samples: int = Field(default=100)
 
     warn_threshold: float = Field(default=0.1)
     critical_threshold: float = Field(default=0.2)
