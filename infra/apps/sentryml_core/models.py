@@ -222,3 +222,15 @@ class SessionToken(SQLModel, table=True):
         index=True,
     )
     revoked_at: Optional[datetime] = Field(default=None, index=True)
+
+
+class PasswordResetToken(SQLModel, table=True):
+    __tablename__ = "password_reset_tokens"
+
+    reset_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(index=True)
+    token: str = Field(index=True, unique=True)
+
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    expires_at: datetime = Field(index=True)
+    used_at: Optional[datetime] = Field(default=None, index=True)

@@ -239,9 +239,12 @@ def settings_update_slack(
 
 @app.get("/", response_class=HTMLResponse)
 def login(request: Request):
+    notice = None
+    if request.query_params.get("reset") == "1":
+        notice = "Password reset successful. Please sign in."
     return templates.TemplateResponse(
         "login.html",
-        {"request": request, "error": None},
+        {"request": request, "error": None, "notice": notice},
     )
 
 
@@ -271,6 +274,7 @@ def auth(request: Request, email: str = Form(...), password: str = Form(...)):
             {
                 "request": request,
                 "error": "Invalid email or password.",
+                "notice": None,
             },
             status_code=401,
         )
@@ -328,6 +332,70 @@ def signup_submit(request: Request, email: str = Form(...), password: str = Form
         samesite="lax",
     )
     return out
+
+
+@app.get("/reset", response_class=HTMLResponse)
+def reset_request(request: Request):
+    return templates.TemplateResponse(
+        "reset_request.html",
+        {"request": request, "message": None, "error": None},
+    )
+
+
+@app.post("/reset")
+def reset_request_submit(request: Request, email: str = Form(...)):
+    resp = requests.post(
+        f"{API_BASE}/v1/auth/password-reset/request",
+        json={"email": email},
+        timeout=5,
+    )
+    if resp.status_code != 200:
+        return templates.TemplateResponse(
+            "reset_request.html",
+            {
+                "request": request,
+                "message": None,
+                "error": "Unable to start password reset. Please try again.",
+            },
+            status_code=400,
+        )
+    return templates.TemplateResponse(
+        "reset_request.html",
+        {
+            "request": request,
+            "message": "If an account exists for that email, a reset link is ready. Check the server logs.",
+            "error": None,
+        },
+    )
+
+
+@app.get("/reset/confirm", response_class=HTMLResponse)
+def reset_confirm(request: Request, token: str | None = None):
+    return templates.TemplateResponse(
+        "reset_confirm.html",
+        {"request": request, "error": None, "token": token},
+    )
+
+
+@app.post("/reset/confirm")
+def reset_confirm_submit(request: Request, token: str = Form(...), password: str = Form(...)):
+    resp = requests.post(
+        f"{API_BASE}/v1/auth/password-reset/confirm",
+        json={"token": token, "password": password},
+        timeout=5,
+    )
+    if resp.status_code != 200:
+        detail = "Invalid or expired reset token."
+        try:
+            detail = resp.json().get("detail", detail)
+        except Exception:
+            pass
+        return templates.TemplateResponse(
+            "reset_confirm.html",
+            {"request": request, "error": detail, "token": token},
+            status_code=400,
+        )
+    return RedirectResponse("/?reset=1", status_code=303)
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, onboarding: int = 0):

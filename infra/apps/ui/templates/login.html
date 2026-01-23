@@ -185,6 +185,12 @@
       line-height: 1.5;
     }
 
+    .alert-success {
+      background: #ecfdf3;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+
     .form-group {
       margin-bottom: 20px;
     }
@@ -386,6 +392,11 @@
           {{ error }}
         </div>
         {% endif %}
+        {% if notice %}
+        <div class="alert alert-success">
+          {{ notice }}
+        </div>
+        {% endif %}
 
         <form action="/auth" method="post">
           <div class="form-group">
@@ -404,6 +415,10 @@
             Need an account? You can create one in a minute.
           </div>
         </form>
+
+        <div class="auth-link" style="margin-top: 14px;">
+          <a href="/reset">Forgot your password?</a>
+        </div>
 
         <div class="auth-divider">
           <span>or</span>
