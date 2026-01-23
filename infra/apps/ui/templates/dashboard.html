@@ -190,11 +190,10 @@
                 </form>
               {% endif %}
             </div>
-            {% if m.monitor_enabled %}
+            {% if not m.monitor_enabled %}
               <div class="muted text-xs" style="margin-top: 4px;">
                 Drift uses scores. Send scores, not just predictions.
               </div>
-            {% else %}
               <div class="muted text-xs" style="margin-top: 4px;">
                 Activates on next worker cycle
               </div>
