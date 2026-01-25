@@ -472,7 +472,9 @@ def ui_enable_monitoring(request: Request, model_id: str):
         timeout=5,
     )
     resp.raise_for_status()
-    return RedirectResponse(f"/models/{model_id}", status_code=303)
+    referer = request.headers.get("referer")
+    target = referer or f"/models/{model_id}"
+    return RedirectResponse(target, status_code=303)
 
 @app.post("/models/{model_id}/monitoring/disable")
 def ui_disable_monitoring(request: Request, model_id: str):
@@ -482,7 +484,9 @@ def ui_disable_monitoring(request: Request, model_id: str):
         timeout=5,
     )
     resp.raise_for_status()
-    return RedirectResponse(f"/models/{model_id}", status_code=303)
+    referer = request.headers.get("referer")
+    target = referer or f"/models/{model_id}"
+    return RedirectResponse(target, status_code=303)
 
 
 @app.post("/models/{model_id}/delete")

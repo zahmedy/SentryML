@@ -25,7 +25,7 @@
   <div class="card-body">
     {% if monitor and monitor.is_enabled %}
       <div class="notice notice-info" style="margin-bottom: 16px;">
-        <div>Drift detection is active for this model.</div>
+        <div>Drift detection is active for this model. Please send scores to see drifts.</div>
         <form action="/models/{{ model_id }}/monitoring/disable" method="post" style="margin-top: 10px;">
           <button type="submit" class="btn-sm btn-ghost">Disable monitoring</button>
         </form>
