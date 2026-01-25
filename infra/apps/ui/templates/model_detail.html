@@ -23,6 +23,24 @@
     {% endif %}
   </div>
   <div class="card-body">
+    {% if monitor and monitor.is_enabled %}
+      <div class="notice notice-info" style="margin-bottom: 16px;">
+        <div>Drift detection is active for this model.</div>
+        <form action="/models/{{ model_id }}/monitoring/disable" method="post" style="margin-top: 10px;">
+          <button type="submit" class="btn-sm btn-ghost">Disable monitoring</button>
+        </form>
+      </div>
+    {% else %}
+      <div class="notice notice-info" style="margin-bottom: 16px;">
+        <div>This model is not being evaluated for drift.</div>
+        <form action="/models/{{ model_id }}/monitoring/enable" method="post" style="margin-top: 10px;">
+          <button type="submit" class="btn-sm">Enable monitoring</button>
+        </form>
+        <div class="muted text-xs" style="margin-top: 6px;">
+          Drift detection runs on a scheduled worker (every ~15 minutes).
+        </div>
+      </div>
+    {% endif %}
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; margin-bottom: 16px;">
       <div>
         <div class="muted text-sm" style="margin-bottom: 6px;">Baseline Window</div>
