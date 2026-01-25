@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy import func
 
 from apps.sentryml_core.db import get_session
 from apps.sentryml_core.models import (
@@ -37,6 +38,41 @@ def ui_model_detail(
     if not cfg:
         cfg = MonitorConfig(org_id=user.org_id, model_id=model_id)
 
+    current_days = cfg.current_days or 1
+    baseline_days = cfg.baseline_days or 7
+    current_start = datetime.utcnow() - timedelta(days=current_days)
+    baseline_start = datetime.utcnow() - timedelta(days=baseline_days)
+    current_total = session.exec(
+        select(func.count()).select_from(PredictionEvent).where(
+            (PredictionEvent.org_id == user.org_id)
+            & (PredictionEvent.model_id == model_id)
+            & (PredictionEvent.event_time >= current_start)
+        )
+    ).one()
+    current_scored = session.exec(
+        select(func.count()).select_from(PredictionEvent).where(
+            (PredictionEvent.org_id == user.org_id)
+            & (PredictionEvent.model_id == model_id)
+            & (PredictionEvent.event_time >= current_start)
+            & (PredictionEvent.score != None)  # noqa: E711
+        )
+    ).one()
+    baseline_total = session.exec(
+        select(func.count()).select_from(PredictionEvent).where(
+            (PredictionEvent.org_id == user.org_id)
+            & (PredictionEvent.model_id == model_id)
+            & (PredictionEvent.event_time >= baseline_start)
+        )
+    ).one()
+    baseline_scored = session.exec(
+        select(func.count()).select_from(PredictionEvent).where(
+            (PredictionEvent.org_id == user.org_id)
+            & (PredictionEvent.model_id == model_id)
+            & (PredictionEvent.event_time >= baseline_start)
+            & (PredictionEvent.score != None)  # noqa: E711
+        )
+    ).one()
+
     drift = session.exec(
         select(DriftResult)
         .where((DriftResult.org_id == user.org_id) & (DriftResult.model_id == model_id))
@@ -64,6 +100,15 @@ def ui_model_detail(
         "incidents": incidents,
         "recent_predictions": preds,
         "monitor": cfg,
+        "monitor_stats": {
+            "current_window_events": current_total,
+            "current_window_scored": current_scored,
+            "baseline_window_events": baseline_total,
+            "baseline_window_scored": baseline_scored,
+            "min_samples": cfg.min_samples,
+            "current_days": current_days,
+            "baseline_days": baseline_days,
+        },
     }
 
 @router.post("/models/{model_id}/monitoring/enable")

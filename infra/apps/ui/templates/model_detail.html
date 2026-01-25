@@ -23,22 +23,54 @@
     {% endif %}
   </div>
   <div class="card-body">
+    {% set stats = monitor_stats or {} %}
+    {% set total_events = stats.current_window_events or 0 %}
+    {% set scored_events = stats.current_window_scored or 0 %}
+    {% set baseline_events = stats.baseline_window_scored or 0 %}
+    {% set min_samples = stats.min_samples or 3 %}
     {% if monitor and monitor.is_enabled %}
       <div class="notice notice-info" style="margin-bottom: 16px;">
-        <div>Drift detection is active for this model. Please send scores to see drifts.</div>
+        <strong>Monitoring: Enabled</strong>
+        <div>Drift detection is active for this model.</div>
+        {% if scored_events < min_samples or baseline_events < min_samples %}
+          <div style="margin-top: 8px;">Not enough data to compute drift yet.</div>
+          <div class="muted text-xs" style="margin-top: 6px;">
+            Current window requires at least {{ min_samples }} events. Seen: {{ scored_events }}.
+          </div>
+          <div class="muted text-xs" style="margin-top: 4px;">
+            Baseline window requires at least {{ min_samples }} events. Seen: {{ baseline_events }}.
+          </div>
+        {% endif %}
         <form action="/models/{{ model_id }}/monitoring/disable" method="post" style="margin-top: 10px;">
           <button type="submit" class="btn-sm btn-ghost">Disable monitoring</button>
         </form>
       </div>
     {% else %}
       <div class="notice notice-info" style="margin-bottom: 16px;">
-        <div>This model is not being evaluated for drift.</div>
-        <form action="/models/{{ model_id }}/monitoring/enable" method="post" style="margin-top: 10px;">
-          <button type="submit" class="btn-sm">Enable monitoring</button>
-        </form>
-        <div class="muted text-xs" style="margin-top: 6px;">
-          Drift detection runs on a scheduled worker (every ~15 minutes).
-        </div>
+        <strong>Monitoring: Disabled</strong>
+        {% if total_events > 0 and scored_events == 0 %}
+          <div>Drift monitoring requires a numeric score in prediction events.</div>
+          <div>We are receiving events without a score.</div>
+          <div class="muted text-xs" style="margin-top: 6px;">
+            Include score in prediction events to enable monitoring.
+          </div>
+          <pre class="code-block" style="margin: 10px 0 0 0;">{
+  "model_id": "{{ model_id }}",
+  "entity_id": "user_123",
+  "prediction": "approve",
+  "score": 0.87,
+  "event_time": "2026-01-16T12:00:00Z"
+}</pre>
+          <button type="button" class="btn-sm btn-ghost" style="margin-top: 10px;" disabled>Enable monitoring</button>
+        {% else %}
+          <div>This model is not being evaluated for drift.</div>
+          <form action="/models/{{ model_id }}/monitoring/enable" method="post" style="margin-top: 10px;">
+            <button type="submit" class="btn-sm">Enable monitoring</button>
+          </form>
+          <div class="muted text-xs" style="margin-top: 6px;">
+            Drift detection runs on a scheduled worker (every ~15 minutes).
+          </div>
+        {% endif %}
       </div>
     {% endif %}
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; margin-bottom: 16px;">

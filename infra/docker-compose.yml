@@ -39,7 +39,7 @@ services:
       sh -c "
       printenv | grep -v 'no_proxy' > /etc/environment &&
       echo 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' > /etc/cron.d/worker &&
-      echo '*/15 * * * * root . /etc/environment; cd /app && /usr/local/bin/python -m apps.worker.worker.run_once >> /proc/1/fd/1 2>> /proc/1/fd/2' >> /etc/cron.d/worker &&
+      echo '* * * * * root . /etc/environment; cd /app && /usr/local/bin/python -m apps.worker.worker.run_once >> /proc/1/fd/1 2>> /proc/1/fd/2' >> /etc/cron.d/worker &&
       chmod 0644 /etc/cron.d/worker &&
       cron -f"
     environment:
