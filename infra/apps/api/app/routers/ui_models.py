@@ -25,6 +25,7 @@ def ui_model_detail(
     session: Session = Depends(get_session),
     limit: int = 50,
     drift_limit: int = 50,
+    pred_limit: int = 50,
 ):
     model = session.get(ModelRegistry, (user.org_id, model_id))
     if not model or model.is_deleted:
@@ -88,11 +89,11 @@ def ui_model_detail(
     ).all()
 
     preds = session.exec(
-    select(PredictionEvent)
-    .where((PredictionEvent.org_id == user.org_id) & (PredictionEvent.model_id == model_id))
-    .order_by(PredictionEvent.event_time.desc())
-    .limit(50)
-        ).all()
+        select(PredictionEvent)
+        .where((PredictionEvent.org_id == user.org_id) & (PredictionEvent.model_id == model_id))
+        .order_by(PredictionEvent.event_time.desc())
+        .limit(pred_limit)
+    ).all()
 
     return {
         "model_id": model_id, 
