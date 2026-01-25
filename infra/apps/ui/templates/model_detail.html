@@ -57,13 +57,13 @@
       <div>
         <div class="muted text-sm" style="margin-bottom: 6px;">Warning Threshold</div>
         <div style="font-size: 24px; font-weight: 600; color: var(--color-warning-600);">
-          {{ (monitor.warn_threshold if monitor else 0.1)|fmt_num }}
+          {{ (monitor.warn_threshold if monitor else 0.1)|round(4) }}
         </div>
       </div>
       <div>
         <div class="muted text-sm" style="margin-bottom: 6px;">Critical Threshold</div>
         <div style="font-size: 24px; font-weight: 600; color: var(--color-danger-600);">
-          {{ (monitor.critical_threshold if monitor else 0.2)|fmt_num }}
+          {{ (monitor.critical_threshold if monitor else 0.2)|round(4) }}
         </div>
       </div>
     </div>
