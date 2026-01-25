@@ -33,12 +33,12 @@
 <h3>Slack Alerts</h3>
 <form action="/settings/slack" method="post" style="margin:10px 0;">
   <label>Slack Webhook URL</label><br/>
-  <input type="text" name="slack_webhook_url" style="width:60%;" value="{{ slack.slack_webhook_url if slack else '' }}" />
-  <div style="margin-top:8px;">
-    <label>
+  <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+    <label style="display:flex; align-items:center; gap:6px; margin:0;">
       <input type="checkbox" name="is_enabled" {% if slack and slack.is_enabled %}checked{% endif %} />
       Enabled
     </label>
+    <input type="text" name="slack_webhook_url" style="flex:1; min-width:240px;" value="{{ slack.slack_webhook_url if slack else '' }}" />
   </div>
   <button type="submit" style="margin-top:8px;">Update Slack</button>
 </form>
