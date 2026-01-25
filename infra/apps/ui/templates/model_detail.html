@@ -238,7 +238,7 @@
   </div>
   <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 8px;">
     <label class="muted text-sm">Show last:</label>
-    <select name="pred_limit" onchange="this.form.submit()" style="width: auto;">
+    <select id="pred-limit-select" name="pred_limit" style="width: auto;">
       <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
       <option value="200" {% if pred_limit == 200 %}selected{% endif %}>200</option>
       <option value="1000" {% if pred_limit == 1000 %}selected{% endif %}>1000</option>
@@ -247,44 +247,46 @@
   </form>
 </div>
 
-{% if recent_predictions|length == 0 %}
-  <div class="card">
-    <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
-      <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">📥</div>
-      <div style="font-size: 16px; font-weight: 500; color: var(--color-gray-700);">No prediction events yet</div>
-      <div style="font-size: 14px; margin-top: 8px;">Start sending prediction events from your application</div>
+<div id="predictions-panel">
+  {% if recent_predictions|length == 0 %}
+    <div class="card">
+      <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
+        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">📥</div>
+        <div style="font-size: 16px; font-weight: 500; color: var(--color-gray-700);">No prediction events yet</div>
+        <div style="font-size: 14px; margin-top: 8px;">Start sending prediction events from your application</div>
+      </div>
     </div>
-  </div>
-{% else %}
-  <div class="table-wrap" style="max-height: 500px; overflow-y: auto;">
-    <table>
-      <thead>
-        <tr>
-          <th>Event Time</th>
-          <th>Entity ID</th>
-          <th>Prediction</th>
-          <th>Score</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in recent_predictions %}
-        <tr>
-          <td class="muted">{{ p.event_time|fmt_dt }}</td>
-          <td><span class="font-mono text-sm">{{ p.entity_id }}</span></td>
-          <td><span class="badge badge-neutral">{{ p.prediction }}</span></td>
-          <td>
-            {% if p.score is not none %}
-              <span class="font-medium">{{ p.score|fmt_num }}</span>
-            {% else %}
-              <span class="muted">—</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% endif %}
+  {% else %}
+    <div class="table-wrap" style="max-height: 500px; overflow-y: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Event Time</th>
+            <th>Entity ID</th>
+            <th>Prediction</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="predictions-body">
+          {% for p in recent_predictions %}
+          <tr>
+            <td class="muted">{{ p.event_time|fmt_dt }}</td>
+            <td><span class="font-mono text-sm">{{ p.entity_id }}</span></td>
+            <td><span class="badge badge-neutral">{{ p.prediction }}</span></td>
+            <td>
+              {% if p.score is not none %}
+                <span class="font-medium">{{ p.score|fmt_num }}</span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
 
 <div class="section-header" style="margin-top: 48px;">
   <div>
@@ -363,5 +365,70 @@
     font-family: var(--font-mono);
   }
 </style>
+
+<script>
+  (function () {
+    const select = document.getElementById("pred-limit-select");
+    const panel = document.getElementById("predictions-panel");
+    const modelId = "{{ model_id }}";
+
+    if (!select || !panel) return;
+
+    function renderRows(rows) {
+      if (!rows.length) {
+        panel.innerHTML = `
+          <div class="card">
+            <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
+              <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">📥</div>
+              <div style="font-size: 16px; font-weight: 500; color: var(--color-gray-700);">No prediction events yet</div>
+              <div style="font-size: 14px; margin-top: 8px;">Start sending prediction events from your application</div>
+            </div>
+          </div>`;
+        return;
+      }
+      const rowsHtml = rows.map((p) => {
+        const score = p.score === null || p.score === undefined ? "<span class='muted'>—</span>" : `<span class='font-medium'>${Number(p.score).toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}</span>`;
+        const prediction = p.prediction === null || p.prediction === undefined ? "—" : p.prediction;
+        const entity = p.entity_id || "";
+        const time = p.event_time || "";
+        return `
+          <tr>
+            <td class="muted">${time}</td>
+            <td><span class="font-mono text-sm">${entity}</span></td>
+            <td><span class="badge badge-neutral">${prediction}</span></td>
+            <td>${score}</td>
+          </tr>`;
+      }).join("");
+      panel.innerHTML = `
+        <div class="table-wrap" style="max-height: 500px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Event Time</th>
+                <th>Entity ID</th>
+                <th>Prediction</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+    }
+
+    select.addEventListener("change", async () => {
+      const limit = select.value;
+      panel.innerHTML = "<div class='muted'>Loading…</div>";
+      try {
+        const url = `/v1/ui/models/${modelId}?pred_limit=${encodeURIComponent(limit)}&drift_limit={{ drift_limit }}`;
+        const resp = await fetch(url, { credentials: "include" });
+        if (!resp.ok) throw new Error("Failed to load predictions");
+        const data = await resp.json();
+        renderRows(data.recent_predictions || []);
+      } catch (e) {
+        panel.innerHTML = "<div class='muted'>Unable to load predictions.</div>";
+      }
+    });
+  })();
+</script>
 
 {% endblock %}
