@@ -172,7 +172,7 @@
 {% endif %}
 
 <!-- Drift History Section -->
-<div class="section-header" style="margin-top: 24px; margin-bottom: 2px;">
+<div class="section-header" style="margin-top: 48px;">
   <div>
     <h2 class="section-title">Drift History</h2>
     <div class="section-sub">Drift scores based on very small sample sizes may be unstable</div>
@@ -233,7 +233,7 @@
       </tbody>
     </table>
   </div>
-  <div class="muted text-sm" style="margin-top: 3px;">Drift evaluations: {{ drift|length }}</div>
+  <div class="muted text-sm" style="margin-top: 6px; padding-left: 6px;">Drift evaluations: {{ drift|length }}</div>
 {% endif %}
 
 <!-- Recent Predictions Section -->
@@ -241,7 +241,7 @@
   <div>
     <h2 class="section-title">Recent Predictions</h2>
   </div>
-  <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 3px;">
+  <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 8px;">
     <label class="muted text-sm">Show last:</label>
     <select id="pred-limit-select" name="pred_limit" style="width: auto;">
       <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
@@ -252,7 +252,7 @@
   </form>
 </div>
 
-<div id="predictions-panel" style="margin-top: -10px;">
+<div id="predictions-panel">
   {% if recent_predictions|length == 0 %}
     <div class="card">
       <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
@@ -305,25 +305,27 @@
 </div>
 
 <div class="card">
-  <p style="margin-top:0;">
-    Deleting this model will permanently remove:
-  </p>
-  <ul style="margin:0 0 12px 18px; color:#6b7280;">
-    <li>prediction events</li>
-    <li>drift history</li>
-    <li>incidents</li>
-  </ul>
-  <div style="display:flex; justify-content:flex-end;">
-    <button type="button" class="btn btn-danger-outline" id="delete-model-btn">
-      Delete model
-    </button>
+  <div class="card-body">
+    <p style="margin-top: 0;">
+      Deleting this model will permanently remove:
+    </p>
+    <ul style="margin: 0 0 12px 18px; color: #6b7280;">
+      <li>prediction events</li>
+      <li>drift history</li>
+      <li>incidents</li>
+    </ul>
+    <div style="display: flex; justify-content: flex-end;">
+      <button type="button" class="btn btn-danger-outline" id="delete-model-btn">
+        Delete model
+      </button>
+    </div>
   </div>
 </div>
 
-<div id="delete-modal" class="modal-overlay" style="display:none;">
+<div id="delete-modal" class="modal-overlay" style="display: none;">
   <div class="modal">
     <div class="modal-title">Confirm model deletion</div>
-    <p class="muted" style="margin-top:0;">
+    <p class="muted" style="margin-top: 0;">
       This action cannot be undone. Type <strong>{{ model_id }}</strong> to confirm.
     </p>
     <form method="post" action="/models/{{ model_id }}/delete">
