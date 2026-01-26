@@ -16,18 +16,24 @@
 <div class="card" style="margin-bottom: 32px;">
   <div class="card-header">
     <h2 class="card-title">Monitoring Configuration</h2>
-    {% if monitor and monitor.is_enabled %}
-      <span class="badge badge-ok"><span class="status-dot"></span> Enabled</span>
-    {% else %}
-      <span class="badge badge-neutral">Disabled</span>
-    {% endif %}
-  </div>
-  <div class="card-body">
     {% set stats = monitor_stats or {} %}
     {% set total_events = stats.current_window_events or 0 %}
     {% set scored_events = stats.current_window_scored or 0 %}
     {% set baseline_events = stats.baseline_window_scored or 0 %}
     {% set min_samples = stats.min_samples or 3 %}
+    {% if monitor and monitor.is_enabled %}
+      {% if scored_events < min_samples or baseline_events < min_samples %}
+        <span class="badge badge-warn">Enabled — Not enough data</span>
+      {% elif drift|length > 0 %}
+        <span class="badge badge-ok">Enabled — Last run: {{ drift[0].computed_at|fmt_dt }}</span>
+      {% else %}
+        <span class="badge badge-ok">Enabled</span>
+      {% endif %}
+    {% else %}
+      <span class="badge badge-neutral">Disabled</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
     {% if monitor and monitor.is_enabled %}
       <div class="notice notice-info" style="margin-bottom: 16px;">
         <strong>Monitoring: Enabled</strong>
