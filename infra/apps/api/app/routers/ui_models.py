@@ -95,12 +95,24 @@ def ui_model_detail(
         .limit(pred_limit)
     ).all()
 
+    pred_count = session.exec(
+        select(func.count()).select_from(PredictionEvent).where(
+            (PredictionEvent.org_id == user.org_id)
+            & (PredictionEvent.model_id == model_id)
+        )
+    ).one()
+
     return {
         "model_id": model_id, 
         "drift": drift, 
         "incidents": incidents,
         "recent_predictions": preds,
         "monitor": cfg,
+        "model": {
+            "event_count": model.event_count,
+            "prediction_count": pred_count,
+            "last_seen_at": model.last_seen_at,
+        },
         "monitor_stats": {
             "current_window_events": current_total,
             "current_window_scored": current_scored,

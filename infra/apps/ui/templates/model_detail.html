@@ -15,7 +15,7 @@
 <!-- Monitoring Configuration Card -->
 <div class="card" style="margin-bottom: 32px;">
   <div class="card-header">
-    <h2 class="card-title">Monitoring Configuration</h2>
+    <h2 class="card-title">Monitoring</h2>
     {% set stats = monitor_stats or {} %}
     {% set total_events = stats.current_window_events or 0 %}
     {% set scored_events = stats.current_window_scored or 0 %}
@@ -172,10 +172,9 @@
 {% endif %}
 
 <!-- Drift History Section -->
-<div class="section-header" style="margin-top: 48px;">
+<div class="section-header" style="margin-top: 24px; margin-bottom: 2px;">
   <div>
     <h2 class="section-title">Drift History</h2>
-    <div class="section-sub">PSI calculation results over time</div>
     <div class="section-sub">Drift scores based on very small sample sizes may be unstable</div>
   </div>
   <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 8px;">
@@ -234,15 +233,15 @@
       </tbody>
     </table>
   </div>
+  <div class="muted text-sm" style="margin-top: 3px;">Drift evaluations: {{ drift|length }}</div>
 {% endif %}
 
 <!-- Recent Predictions Section -->
 <div class="section-header" style="margin-top: 48px;">
   <div>
     <h2 class="section-title">Recent Predictions</h2>
-    <div class="section-sub">Latest prediction events received</div>
   </div>
-  <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 8px;">
+  <form method="get" action="/models/{{ model_id }}" style="display: flex; align-items: center; gap: 3px;">
     <label class="muted text-sm">Show last:</label>
     <select id="pred-limit-select" name="pred_limit" style="width: auto;">
       <option value="50"  {% if pred_limit == 50 %}selected{% endif %}>50</option>
@@ -253,7 +252,7 @@
   </form>
 </div>
 
-<div id="predictions-panel">
+<div id="predictions-panel" style="margin-top: -10px;">
   {% if recent_predictions|length == 0 %}
     <div class="card">
       <div class="card-body" style="text-align: center; padding: 48px 24px; color: var(--color-gray-500);">
@@ -292,6 +291,10 @@
       </table>
     </div>
   {% endif %}
+</div>
+<div class="muted text-sm" style="margin-top: 6px; padding-left: 6px;">
+  Predictions received: {{ model_meta.prediction_count if model_meta else 0 }}
+  &nbsp;&nbsp; Last seen: {{ model_meta.last_seen_at|fmt_dt if model_meta and model_meta.last_seen_at else "—" }}
 </div>
 
 <div class="section-header" style="margin-top: 48px;">

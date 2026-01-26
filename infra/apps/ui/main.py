@@ -462,6 +462,7 @@ def model_detail(
             "recent_predictions": data.get("recent_predictions", []),
             "monitor": data.get("monitor"),
             "monitor_stats": data.get("monitor_stats"),
+            "model_meta": data.get("model"),
         },
     )
 

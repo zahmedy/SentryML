@@ -1,10 +1,17 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
+from sqlalchemy import func
 
 from apps.sentryml_core.db import get_session
-from apps.sentryml_core.models import (ModelRegistry, DriftResult, 
-                                       Incident, User, MonitorConfig)
+from apps.sentryml_core.models import (
+    ModelRegistry,
+    DriftResult,
+    Incident,
+    User,
+    MonitorConfig,
+    PredictionEvent,
+)
 from apps.api.app.deps_auth import get_current_user
 
 router = APIRouter(prefix="/v1/ui", tags=["ui"])
@@ -59,6 +66,13 @@ def ui_dashboard(
     ).all()
     config_by_model = {c.model_id: c for c in configs}
 
+    pred_rows = session.exec(
+        select(PredictionEvent.model_id, func.count())
+        .where(PredictionEvent.org_id == user.org_id)
+        .group_by(PredictionEvent.model_id)
+    ).all()
+    pred_count_by_model = {m_id: cnt for m_id, cnt in pred_rows}
+
     # index: model_id -> open incident (at most one)
     open_by_model = {}
     for inc in open_incidents:
@@ -86,6 +100,7 @@ def ui_dashboard(
             "first_seen_at": m.first_seen_at,
             "last_seen_at": m.last_seen_at,
             "event_count": getattr(m, "event_count", None),
+            "prediction_count": pred_count_by_model.get(m.model_id, 0),
             "monitor_enabled": cfg.is_enabled if cfg else False,
 
             "last_drift_at": d.computed_at if d else None,
