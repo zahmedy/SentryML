@@ -233,7 +233,12 @@
       </tbody>
     </table>
   </div>
-  <div class="muted text-sm" style="margin-top: 6px; padding-left: 6px;">Drift evaluations: {{ drift|length }}</div>
+  <div class="muted text-sm" style="margin-top: 6px; padding-left: 6px;">
+    Drift evaluations: {{ drift|length }}
+    {% if drift|length > 0 %}
+      &nbsp;&nbsp; Last evaluation: {{ drift[0].computed_at|fmt_dt }}
+    {% endif %}
+  </div>
 {% endif %}
 
 <!-- Recent Predictions Section -->
