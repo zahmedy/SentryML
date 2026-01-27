@@ -35,7 +35,7 @@
   </div>
   <div class="card-body">
     {% if monitor and monitor.is_enabled %}
-      <div class="notice notice-info" style="margin-bottom: 16px;">
+      <div class="notice notice-info" style="margin-bottom: 16px; border-color: #dbeafe;">
         <strong>Monitoring: Enabled</strong>
         <div>Drift detection is active for this model.</div>
         {% if scored_events < min_samples or baseline_events < min_samples %}
@@ -52,7 +52,7 @@
         </form>
       </div>
     {% else %}
-      <div class="notice notice-info" style="margin-bottom: 16px;">
+      <div class="notice notice-info" style="margin-bottom: 16px; border-color: #dbeafe;">
         <strong>Monitoring: Disabled</strong>
         {% if total_events > 0 and scored_events == 0 %}
           <div>Drift monitoring requires a numeric score in prediction events.</div>
