@@ -49,6 +49,27 @@ def fetch_scores(
     ).all()
     return list(rows)
 
+def normalize_scores(scores: list[float | None]) -> list[float]:
+    return [float(s) for s in scores if s is not None]
+
+
+def has_enough_samples(scores: list[float], min_samples: int) -> bool:
+    return len(scores) >= min_samples
+
+
+def eligible_for_monitoring(
+    baseline_scores: list[float | None],
+    current_scores: list[float | None],
+    min_samples: int,
+) -> tuple[list[float], list[float]]:
+    baseline = normalize_scores(baseline_scores)
+    current = normalize_scores(current_scores)
+    if not has_enough_samples(baseline, min_samples):
+        return [], []
+    if not has_enough_samples(current, min_samples):
+        return [], []
+    return baseline, current
+
 
 def severity_for_psi(
     psi_score: float,
@@ -176,10 +197,12 @@ def main() -> int:
                 current_end,
             )
 
-            if (
-                len(baseline_scores) < m.min_samples
-                or len(current_scores) < m.min_samples
-            ):
+            baseline_scores, current_scores = eligible_for_monitoring(
+                baseline_scores,
+                current_scores,
+                m.min_samples,
+            )
+            if not baseline_scores or not current_scores:
                 continue
 
             # -------------------------
