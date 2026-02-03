@@ -7,6 +7,10 @@
     body {
       font-family: system-ui, -apple-system, sans-serif;
       margin: 40px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #111827;
     }
     h1 {
       margin-bottom: 16px;
@@ -34,6 +38,22 @@
     }
     .closed {
       color: #065f46;
+    }
+    .page-footer {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .page-footer a {
+      color: #6b7280;
+    }
+    .page-footer a:hover {
+      color: #111827;
     }
   </style>
 </head>
@@ -77,5 +97,10 @@
   </table>
   </div>
 
+  <footer class="page-footer">
+    <a href="/privacy">Data & Privacy</a>
+    <a href="/contact">Contact Us</a>
+    <span>© 2026 SentryML</span>
+  </footer>
 </body>
 </html>

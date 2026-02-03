@@ -20,9 +20,13 @@
       color: #111827;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     .auth-container {
+      flex: 1;
       min-height: 100vh;
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -293,6 +297,27 @@
       text-decoration: underline;
     }
 
+    .page-footer {
+      margin-top: auto;
+      padding: 20px 32px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: #6b7280;
+      background: #ffffff;
+    }
+
+    .page-footer a {
+      color: #6b7280;
+      text-decoration: none;
+    }
+
+    .page-footer a:hover {
+      color: #111827;
+    }
+
     /* Responsive */
     @media (max-width: 1024px) {
       .auth-container {
@@ -430,5 +455,10 @@
       </div>
     </div>
   </div>
+  <footer class="page-footer">
+    <a href="/privacy">Data & Privacy</a>
+    <a href="/contact">Contact Us</a>
+    <span>© 2026 SentryML</span>
+  </footer>
 </body>
 </html>
